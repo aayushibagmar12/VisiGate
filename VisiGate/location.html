@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Access – VisiGate</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="location.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- SCREEN 1: ask for permission -->
+    <div class="form-container" id="screen-idle">
+        <div class="loc-icon-wrap idle">📍</div>
+        <h1>Location Access Required</h1>
+        <p class="subtitle">We need your live location to track your movement inside the campus.</p>
+        <div class="info-box">
+            <div class="info-row"><span class="dot"></span><span>Your location is only recorded while you are inside the campus.</span></div>
+            <div class="info-row"><span class="dot"></span><span>It helps ensure your safety and assists in any security concerns.</span></div>
+            <div class="info-row"><span class="dot"></span><span>Location data is automatically deleted after 15 days.</span></div>
+            <div class="info-row" style="margin-bottom:0"><span class="dot"></span><span>You <strong>cannot proceed</strong> without enabling location access.</span></div>
+        </div>
+        <button class="submit-btn" id="btn-enable">Enable Location &amp; Continue</button>
+    </div>
+
+    <!-- SCREEN 2: waiting for browser popup -->
+    <div class="form-container hidden" id="screen-requesting">
+        <div class="loc-icon-wrap requesting">📡</div>
+        <h1>Waiting for Permission</h1>
+        <p class="subtitle">Please tap <strong>Allow</strong> on the popup that appeared at the top of your screen.</p>
+        <div class="spinner-wrap">
+            <div class="spinner"></div>
+            <span>Detecting your location…</span>
+        </div>
+    </div>
+
+    <!-- SCREEN 3: denied -->
+    <div class="form-container hidden" id="screen-denied">
+        <div class="loc-icon-wrap denied">🚫</div>
+        <h1>Location Blocked</h1>
+        <p class="subtitle">You cannot enter the campus without enabling location access.</p>
+        <div class="alert-box error">Location permission was denied. Please enable it manually using the steps below, then try again.</div>
+        <div class="steps-box">
+            <p class="steps-title">How to enable on Android Chrome</p>
+            <div class="step-row"><span class="step-num">1</span> Tap the <strong>lock icon</strong> in your browser address bar</div>
+            <div class="step-row"><span class="step-num">2</span> Tap <strong>Permissions</strong></div>
+            <div class="step-row"><span class="step-num">3</span> Set <strong>Location</strong> to Allow</div>
+            <div class="step-row"><span class="step-num">4</span> Come back here and tap Try Again</div>
+        </div>
+        <button class="submit-btn" id="btn-retry">Try Again</button>
+    </div>
+
+    <!-- SCREEN 4: success -->
+    <div class="form-container hidden" id="screen-granted">
+        <div class="loc-icon-wrap granted">✅</div>
+        <h1>Location Enabled!</h1>
+        <p class="subtitle">Your location has been detected. Taking you to the next step…</p>
+        <div class="alert-box success">📍 GPS signal found — you're good to go!</div>
+        <p class="coords-text" id="coords-display"></p>
+        <div class="alert-box warning hidden" id="gap-warning">⚠️ Location signal was lost. Your movement during this gap has been flagged. Please keep location enabled.</div>
+    </div>
+
+    <script src="location.js"></script>
+</body>
+</html>

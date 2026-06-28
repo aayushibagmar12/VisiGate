@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Registration</title>
+    <meta name="description" content="User registration form with dynamic ID selection.">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="form-container">
+        <h1>Registration Form</h1>
+        <p class="subtitle">Please provide your details below.</p>
+        
+        <form id="registration-form">
+            <div class="input-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" name="name" placeholder="Aarav Sharma" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="age">Age</label>
+                <input type="number" id="age" name="age" placeholder="25" min="1" max="120" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="mobile">Mobile Number</label>
+                <input type="tel" id="mobile" name="mobile" placeholder="9876543210" pattern="[0-9]{10}" title="Please enter a 10-digit mobile number" required>
+            </div>
+            
+            <div class="input-group">
+                <label for="id-type">Identification Card</label>
+                <select id="id-type" name="id-type" required>
+                    <option value="" disabled selected>Select an ID type</option>
+                    <option value="adhar">Aadhar Card</option>
+                    <option value="driving">Driving License</option>
+                    <option value="pan">PAN Card</option>
+                </select>
+            </div>
+            
+            <div class="input-group" id="dynamic-id-container" style="display: none;">
+                <label id="dynamic-id-label" for="id-number">ID Number</label>
+                <input type="text" id="id-number" name="id-number" placeholder="Enter ID number" required>
+            </div>
+            
+            <button type="submit" class="submit-btn">Submit</button>
+        </form>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

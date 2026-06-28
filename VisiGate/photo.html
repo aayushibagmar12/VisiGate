@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Capture – VisiGate</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="location.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- SCREEN 1: camera view -->
+    <div class="form-container" id="screen-camera">
+        <div class="loc-icon-wrap idle">📸</div>
+        <h1>Take Your Photo</h1>
+        <p class="subtitle">Look straight into the camera and click the button below.</p>
+
+        <div id="camera-wrap">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas" style="display:none;"></canvas>
+        </div>
+
+        <button class="submit-btn" id="btn-capture">Capture Photo</button>
+    </div>
+
+    <!-- SCREEN 2: preview captured photo -->
+    <div class="form-container hidden" id="screen-preview">
+        <div class="loc-icon-wrap granted">🖼️</div>
+        <h1>Photo Captured!</h1>
+        <p class="subtitle">Make sure your face is clearly visible. Retake if needed.</p>
+
+        <div id="preview-wrap">
+            <img id="photo-preview" src="" alt="Captured photo">
+        </div>
+
+        <button class="submit-btn" id="btn-confirm">Use This Photo &amp; Continue</button>
+        <button class="submit-btn" id="btn-retake" style="background:#f3f4f6; color:#374151; margin-top:10px;">Retake Photo</button>
+    </div>
+
+    <!-- SCREEN 3: error (camera blocked) -->
+    <div class="form-container hidden" id="screen-error">
+        <div class="loc-icon-wrap denied">🚫</div>
+        <h1>Camera Blocked</h1>
+        <p class="subtitle">We need camera access to capture your photo.</p>
+        <div class="alert-box error">Camera permission was denied. Please enable it and try again.</div>
+        <div class="steps-box">
+            <p class="steps-title">How to enable on Android Chrome</p>
+            <div class="step-row"><span class="step-num">1</span> Tap the <strong>lock icon</strong> in your address bar</div>
+            <div class="step-row"><span class="step-num">2</span> Tap <strong>Permissions</strong></div>
+            <div class="step-row"><span class="step-num">3</span> Set <strong>Camera</strong> to Allow</div>
+            <div class="step-row"><span class="step-num">4</span> Refresh the page</div>
+        </div>
+        <button class="submit-btn" id="btn-retry">Try Again</button>
+    </div>
+
+    <script src="photo.js"></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Pass – VisiGate</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="location.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+    <!-- SCREEN 1: entry pass with QR -->
+    <div class="form-container" id="screen-entry">
+        <div class="loc-icon-wrap granted">🎫</div>
+        <h1>Visitor Pass</h1>
+        <p class="subtitle">Show this QR code to the guard at the gate.</p>
+
+        <div class="pass-card">
+            <img id="pass-photo" src="" alt="Visitor Photo" class="pass-photo">
+            <div class="pass-details">
+                <div class="pass-row"><span class="pass-label">Name</span><span class="pass-value" id="pass-name">—</span></div>
+                <div class="pass-row"><span class="pass-label">Pass ID</span><span class="pass-value" id="pass-id">—</span></div>
+                <div class="pass-row"><span class="pass-label">Time</span><span class="pass-value" id="pass-time">—</span></div>
+            </div>
+        </div>
+
+        <p class="steps-title" style="text-align:center; margin-bottom:0.75rem;">Entry QR Code</p>
+        <div id="qr-entry" class="qr-wrap"></div>
+
+        <div class="alert-box warning" style="margin-top:1.25rem;">
+            ⚠️ Do not close this tab until you exit the campus.
+        </div>
+    </div>
+
+    <!-- SCREEN 2: exit pass (shown after guard scans entry QR) -->
+    <div class="form-container hidden" id="screen-exit">
+        <div class="loc-icon-wrap granted">✅</div>
+        <h1>You're Inside!</h1>
+        <p class="subtitle">Show this QR code to the guard when you leave.</p>
+
+        <p class="steps-title" style="text-align:center; margin-bottom:0.75rem;">Exit QR Code</p>
+        <div id="qr-exit" class="qr-wrap"></div>
+
+        <div class="alert-box success" style="margin-top:1.25rem;">
+            📍 Your location is being tracked while you are on campus.
+        </div>
+
+        <div class="alert-box warning">
+            ⚠️ Do not close this tab until you exit the campus.
+        </div>
+
+        <button class="submit-btn" id="btn-exit" style="background:#dc2626;">
+            Checkout / Exit Campus
+        </button>
+    </div>
+
+    <!-- SCREEN 3: checked out -->
+    <div class="form-container hidden" id="screen-done">
+        <div class="loc-icon-wrap" style="background:#f3f4f6;">👋</div>
+        <h1>Visit Complete</h1>
+        <p class="subtitle">You have been checked out successfully. Thank you for visiting!</p>
+        <div class="alert-box success">
+            ✅ Your session has ended. Location tracking has stopped.
+        </div>
+        <div class="pass-row" style="justify-content:center; margin-top:0.5rem;">
+            <span class="pass-label">Total time on campus:</span>
+            <span class="pass-value" id="total-time" style="margin-left:8px;">—</span>
+        </div>
+    </div>
+
+    <script src="pass.js"></script>
+</body>
+</html>
