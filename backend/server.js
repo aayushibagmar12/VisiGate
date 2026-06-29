@@ -17,7 +17,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.urlencoded({ extended: true }));
 
 // ── serve frontend files ──
-app.use(express.static(path.join(__dirname, '../VisiGate')));
+app.use(express.static(path.join(__dirname, '../VisiGate/VisiGate')));
 
 // ── setup uploads folder ──
 const uploadDir = path.join(__dirname, 'uploads');
