@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
 const Database = require('better-sqlite3');
+const bcrypt = require('bcrypt');
 const fs = require('fs');
 
 const app = express();
@@ -69,6 +70,30 @@ db.exec(`
     created_at  TEXT DEFAULT (datetime('now','localtime'))
   );
 `);
+// Add preserve_location column if it doesn't exist yet
+try {
+  db.exec(`ALTER TABLE visitors ADD COLUMN preserve_location INTEGER DEFAULT 0`);
+} catch (e) {
+  // Column already exists, ignore
+}
+
+// Admins table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS admins (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    username   TEXT UNIQUE NOT NULL,
+    password   TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now','localtime'))
+  );
+`);
+
+// Seed default admin account if not already present
+const defaultAdminExists = db.prepare('SELECT * FROM admins WHERE username = ?').get('IIIT NR admin');
+if (!defaultAdminExists) {
+  const hashedPassword = bcrypt.hashSync('IIIT NR login0987', 10);
+  db.prepare('INSERT INTO admins (username, password) VALUES (?, ?)').run('IIIT NR admin', hashedPassword);
+  console.log('✅ Default admin account created: IIIT NR admin');
+}
 
 // ─── Multer ───────────────────────────────────────────────────────────────────
 const storage = multer.diskStorage({
@@ -380,6 +405,112 @@ app.delete('/api/admin/blacklist/:mobile', (req, res) => {
     res.status(500).json({ success: false, message: 'Server error removing from blacklist.' });
   }
 });
+
+// POST /api/admin/login
+app.post('/api/admin/login', (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password)
+      return res.status(400).json({ success: false, message: 'Username and password are required.' });
+
+    const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get(username);
+    if (!admin)
+      return res.status(401).json({ success: false, message: 'Invalid username or password.' });
+
+    const match = bcrypt.compareSync(password, admin.password);
+    if (!match)
+      return res.status(401).json({ success: false, message: 'Invalid username or password.' });
+
+    res.json({ success: true, message: 'Login successful.', username: admin.username });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ success: false, message: 'Server error during login.' });
+  }
+});
+
+// POST /api/admin/create-account
+app.post('/api/admin/create-account', (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password)
+      return res.status(400).json({ success: false, message: 'Username and password are required.' });
+
+    const exists = db.prepare('SELECT id FROM admins WHERE username = ?').get(username);
+    if (exists)
+      return res.status(409).json({ success: false, message: 'Username already exists.' });
+
+    const hashed = bcrypt.hashSync(password, 10);
+    db.prepare('INSERT INTO admins (username, password) VALUES (?, ?)').run(username, hashed);
+    res.json({ success: true, message: `Account '${username}' created successfully.` });
+  } catch (err) {
+    console.error('Create account error:', err);
+    res.status(500).json({ success: false, message: 'Server error creating account.' });
+  }
+});
+
+// DELETE /api/admin/visitor/:id
+app.delete('/api/admin/visitor/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const visitor = db.prepare('SELECT * FROM visitors WHERE id = ?').get(id);
+    if (!visitor)
+      return res.status(404).json({ success: false, message: 'Visitor not found.' });
+
+    db.prepare('DELETE FROM location_logs WHERE visitor_id = ?').run(id);
+    db.prepare('DELETE FROM location_gaps WHERE visitor_id = ?').run(id);
+    db.prepare('DELETE FROM guard_logs WHERE pass_id = ?').run(visitor.pass_id);
+    db.prepare('DELETE FROM visitors WHERE id = ?').run(id);
+
+    // Delete photo file if exists
+    if (visitor.photo_path) {
+      const fullPath = path.join(__dirname, visitor.photo_path.replace('/uploads/', 'uploads/'));
+      if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+    }
+
+    res.json({ success: true, message: 'Visitor deleted successfully.' });
+  } catch (err) {
+    console.error('Delete visitor error:', err);
+    res.status(500).json({ success: false, message: 'Server error deleting visitor.' });
+  }
+});
+
+// PATCH /api/admin/visitor/:id/preserve
+app.patch('/api/admin/visitor/:id/preserve', (req, res) => {
+  try {
+    const { id } = req.params;
+    const visitor = db.prepare('SELECT * FROM visitors WHERE id = ?').get(id);
+    if (!visitor)
+      return res.status(404).json({ success: false, message: 'Visitor not found.' });
+
+    const newValue = visitor.preserve_location === 1 ? 0 : 1;
+    db.prepare('UPDATE visitors SET preserve_location = ? WHERE id = ?').run(newValue, id);
+    res.json({ success: true, preserve_location: newValue });
+  } catch (err) {
+    console.error('Preserve toggle error:', err);
+    res.status(500).json({ success: false, message: 'Server error toggling preserve.' });
+  }
+});
+
+// 7-day location cleanup (skips preserved visitors)
+function runLocationCleanup() {
+  try {
+    const result = db.prepare(`
+      DELETE FROM location_logs
+      WHERE recorded_at < datetime('now', '-7 days', 'localtime')
+      AND visitor_id NOT IN (
+        SELECT id FROM visitors WHERE preserve_location = 1
+      )
+    `).run();
+    if (result.changes > 0)
+      console.log(`🧹 Cleanup: deleted ${result.changes} old location logs`);
+  } catch (err) {
+    console.error('Cleanup error:', err);
+  }
+}
+
+// Run cleanup on start and every 24 hours
+runLocationCleanup();
+setInterval(runLocationCleanup, 24 * 60 * 60 * 1000);
 
 // ─── 404 fallback ─────────────────────────────────────────────────────────────
 app.use((req, res) => {
