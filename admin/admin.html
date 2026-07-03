@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VisiGate Admin — IIIT Naya Raipur</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:       #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #ede9fe;
+      --bg:            #f3f4f6;
+      --card:          #ffffff;
+      --text:          #111827;
+      --muted:         #6b7280;
+      --border:        #d1d5db;
+      --focus-ring:    #c7d2fe;
+      --danger:        #dc2626;
+      --danger-light:  #fee2e2;
+      --success:       #16a34a;
+      --success-light: #dcfce7;
+      --warning:       #d97706;
+      --warning-light: #fffbeb;
+      --radius-sm:     8px;
+      --radius:        12px;
+      --radius-lg:     16px;
+      --shadow:        0 4px 6px rgba(0,0,0,.04), 0 10px 25px rgba(0,0,0,.06);
+      --shadow-sm:     0 1px 3px rgba(0,0,0,.08);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── BUTTONS ────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 18px; border-radius: var(--radius-sm); border: none;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      transition: background .2s, opacity .2s, transform .1s;
+      font-family: inherit;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary  { background: var(--primary); color: #fff; }
+    .btn-primary:hover  { background: var(--primary-hover); }
+    .btn-danger   { background: var(--danger); color: #fff; }
+    .btn-danger:hover   { opacity: .88; }
+    .btn-ghost    { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .btn-ghost:hover    { border-color: var(--primary); color: var(--primary); }
+    .btn-success  { background: var(--success); color: #fff; }
+    .btn-full     { width: 100%; padding: 12px; }
+
+    /* ── INPUTS ─────────────────────────────────────────── */
+    .input-group { margin-bottom: 1.25rem; }
+    .input-group label {
+      display: block; font-size: 0.875rem; font-weight: 500;
+      margin-bottom: 6px; color: var(--text);
+    }
+    .input-group input, .input-group select {
+      width: 100%; padding: 10px 14px;
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 0.95rem; font-family: inherit; color: var(--text);
+      background: #fff; outline: none; transition: border-color .2s, box-shadow .2s;
+    }
+    .input-group input:focus, .input-group select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--focus-ring);
+    }
+
+    /* ── LOGIN PAGE ─────────────────────────────────────── */
+    #loginPage {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 20px;
+    }
+    .login-card {
+      background: var(--card); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow); padding: 2.5rem;
+      width: 100%; max-width: 420px;
+    }
+    .login-logo {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 1.75rem;
+    }
+    .login-logo .logo-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: var(--primary-light); display: flex; align-items: center;
+      justify-content: center; font-size: 1.3rem;
+    }
+    .login-logo .logo-text h2 { font-size: 1.1rem; font-weight: 700; }
+    .login-logo .logo-text p  { font-size: 0.78rem; color: var(--muted); }
+    .login-card h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+    .login-card .subtitle { color: var(--muted); font-size: 0.88rem; margin-bottom: 2rem; }
+    .error-msg {
+      background: var(--danger-light); border: 1px solid #fecaca;
+      color: var(--danger); border-radius: var(--radius-sm);
+      padding: 10px 14px; font-size: 0.83rem; margin-bottom: 1rem;
+      display: none;
+    }
+    .error-msg.show { display: block; }
+
+    /* ── APP SHELL ──────────────────────────────────────── */
+    #app { display: none; }
+
+    .topnav {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 0 28px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-sm);
+    }
+    .topnav-left { display: flex; align-items: center; gap: 24px; }
+    .topnav-brand { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .topnav-brand span { color: var(--primary); }
+    .topnav-tabs { display: flex; gap: 4px; }
+    .tab {
+      padding: 6px 14px; border-radius: var(--radius-sm); font-size: 0.85rem;
+      font-weight: 500; cursor: pointer; color: var(--muted);
+      border: none; background: none; font-family: inherit;
+      transition: background .15s, color .15s;
+    }
+    .tab:hover  { background: var(--bg); color: var(--text); }
+    .tab.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+    .topnav-right { display: flex; align-items: center; gap: 12px; position: relative; }
+
+    /* Account dropdown */
+    .acct-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--primary-light); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; color: var(--primary); font-weight: 700;
+      transition: background .15s;
+    }
+    .acct-btn:hover { background: #ddd6fe; }
+    .dropdown {
+      position: absolute; top: calc(100% + 10px); right: 0;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      width: 220px; z-index: 200; display: none; overflow: hidden;
+    }
+    .dropdown.open { display: block; }
+    .dropdown-header {
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+    .dropdown-header strong { display: block; font-size: 0.9rem; margin-bottom: 2px; }
+    .dropdown-header span { color: var(--muted); }
+    .dropdown-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; font-size: 0.85rem; cursor: pointer;
+      color: var(--text); border: none; background: none;
+      width: 100%; font-family: inherit; text-align: left;
+      transition: background .12s;
+    }
+    .dropdown-item:hover { background: var(--bg); }
+    .dropdown-item.danger { color: var(--danger); }
+    .dropdown-item.danger:hover { background: var(--danger-light); }
+    .dropdown-divider { height: 1px; background: var(--border); }
+
+    /* ── MAIN CONTENT ───────────────────────────────────── */
+    .main { padding: 28px 32px; max-width: 1200px; margin: 0 auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-header { margin-bottom: 24px; }
+    .page-header h2 { font-size: 1.3rem; font-weight: 700; }
+    .page-header p  { color: var(--muted); font-size: 0.85rem; margin-top: 3px; }
+
+    /* ── STAT CARDS ─────────────────────────────────────── */
+    .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 22px;
+      flex: 1; min-width: 130px; box-shadow: var(--shadow-sm);
+    }
+    .stat-card .val { font-size: 2rem; font-weight: 700; color: var(--text); }
+    .stat-card .lbl { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .stat-card .val.primary { color: var(--primary); }
+    .stat-card .val.success { color: var(--success); }
+    .stat-card .val.danger  { color: var(--danger);  }
+
+    /* ── CARD ───────────────────────────────────────────── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-header h3 { font-size: 0.95rem; font-weight: 600; }
+
+    /* ── FILTERS ────────────────────────────────────────── */
+    .filters {
+      display: flex; gap: 10px; padding: 16px 20px;
+      border-bottom: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .filters input, .filters select {
+      padding: 8px 12px; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); font-size: 0.85rem;
+      font-family: inherit; color: var(--text); background: #fff;
+      outline: none; transition: border-color .2s, box-shadow .2s;
+    }
+    .filters input:focus, .filters select:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px var(--focus-ring);
+    }
+    .filters input { flex: 1; min-width: 180px; }
+
+    /* ── TABLE ──────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th {
+      text-align: left; padding: 11px 16px; color: var(--muted);
+      font-size: 0.72rem; font-weight: 600; letter-spacing: .06em;
+      text-transform: uppercase; border-bottom: 1px solid var(--border);
+      background: #fafafa;
+    }
+    td { padding: 13px 16px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr.clickable { cursor: pointer; }
+    tr.clickable:hover td { background: #f9fafb; }
+
+    .visitor-photo {
+      width: 36px; height: 36px; border-radius: 8px;
+      object-fit: cover; display: block;
+    }
+    .photo-placeholder {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--primary-light); display: flex;
+      align-items: center; justify-content: center;
+      font-size: 1rem; color: var(--primary);
+    }
+
+    /* ── BADGES ─────────────────────────────────────────── */
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 0.72rem; font-weight: 600; letter-spacing: .03em;
+    }
+    .badge-inside  { background: var(--success-light); color: var(--success); }
+    .badge-exited  { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+    .badge-pending { background: var(--warning-light); color: var(--warning); }
+
+    /* ── EMPTY STATE ────────────────────────────────────── */
+    .empty-state {
+      text-align: center; padding: 56px 20px; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .empty-state p { font-size: 0.88rem; }
+
+    /* ── MODAL ──────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.35); z-index: 300;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card); border-radius: var(--radius-lg);
+      box-shadow: 0 20px 60px rgba(0,0,0,.15);
+      width: 100%; max-width: 760px; max-height: 90vh;
+      overflow-y: auto; position: relative;
+    }
+    .modal-header {
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; background: var(--card); z-index: 10;
+    }
+    .modal-header h3 { font-size: 1rem; font-weight: 700; }
+    .modal-close {
+      background: none; border: none; color: var(--muted);
+      font-size: 1.2rem; cursor: pointer; padding: 4px;
+      border-radius: 6px; line-height: 1;
+    }
+    .modal-close:hover { background: var(--bg); color: var(--text); }
+    .modal-body { padding: 24px; }
+
+    /* ── DETAIL SECTIONS ────────────────────────────────── */
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .detail-section {
+      background: var(--bg); border-radius: var(--radius-sm);
+      padding: 16px; border: 1px solid var(--border);
+    }
+    .detail-section h4 {
+      font-size: 0.72rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px;
+    }
+    .detail-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.84rem; padding: 5px 0; border-bottom: 1px solid var(--border);
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-row .lbl { color: var(--muted); }
+    .detail-row .val { font-weight: 600; text-align: right; }
+
+    .visitor-photo-lg {
+      width: 72px; height: 72px; border-radius: var(--radius-sm);
+      object-fit: cover; border: 2px solid var(--border);
+    }
+    .photo-placeholder-lg {
+      width: 72px; height: 72px; border-radius: var(--radius-sm);
+      background: var(--primary-light); display: flex; align-items: center;
+      justify-content: center; font-size: 2rem; color: var(--primary);
+      border: 2px solid var(--border);
+    }
+
+    /* ── MAP ────────────────────────────────────────────── */
+    #detailMap, #overviewMap {
+      border-radius: var(--radius-sm); border: 1px solid var(--border);
+    }
+    #detailMap   { height: 280px; margin-bottom: 16px; }
+    #overviewMap { height: 500px; }
+
+    /* ── GAP ENTRIES ────────────────────────────────────── */
+    .gap-entry {
+      background: #fef2f2; border: 1px solid #fecaca;
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      font-size: 0.82rem; color: var(--danger); margin-bottom: 8px;
+    }
+
+    /* ── ACTION ROW ─────────────────────────────────────── */
+    .action-row {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      padding: 16px 24px; border-top: 1px solid var(--border);
+      background: #fafafa;
+    }
+
+    /* ── RADIO OPTIONS ──────────────────────────────────── */
+    .radio-group { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+    .radio-opt {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); cursor: pointer; font-size: 0.88rem;
+      transition: border-color .15s;
+    }
+    .radio-opt:hover { border-color: var(--primary); }
+    .radio-opt input { accent-color: var(--primary); }
+
+    /* ── BLACKLIST FORM ─────────────────────────────────── */
+    .blacklist-form {
+      display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      background: #fafafa;
+    }
+    .blacklist-form .input-group { margin: 0; flex: 1; min-width: 160px; }
+
+    /* ── PAST VISITS ────────────────────────────────────── */
+    .past-visit-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.84rem;
+    }
+    .past-visit-row:last-child { border-bottom: none; }
+
+    /* ── PRESERVE TOGGLE ────────────────────────────────── */
+    .preserve-toggle {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; background: #fffbeb; border: 1px solid #fde68a;
+      border-radius: var(--radius-sm); font-size: 0.84rem; color: var(--warning);
+      margin-bottom: 16px;
+    }
+    .preserve-toggle.active {
+      background: var(--success-light); border-color: #bbf7d0; color: var(--success);
+    }
+
+    /* ── LIVE INDICATOR ─────────────────────────────────── */
+    .live-dot {
+      display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--success); margin-right: 5px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── TOAST ──────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      padding: 11px 18px; border-radius: var(--radius-sm);
+      font-size: 0.85rem; font-weight: 500; font-family: inherit;
+      opacity: 0; transform: translateY(8px);
+      transition: all .25s; pointer-events: none; z-index: 999;
+      box-shadow: var(--shadow);
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.success { background: var(--success-light); color: var(--success); border: 1px solid #bbf7d0; }
+    #toast.error   { background: var(--danger-light);  color: var(--danger);  border: 1px solid #fecaca; }
+    #toast.info    { background: var(--primary-light);  color: var(--primary); border: 1px solid #c7d2fe; }
+
+    /* ── CONFIRM DIALOG ─────────────────────────────────── */
+    .confirm-modal { max-width: 420px; }
+    .confirm-modal .modal-body p { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; line-height: 1.6; }
+    .confirm-modal .modal-body .btn-row { display: flex; gap: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="loginPage">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">🏛️</div>
+      <div class="logo-text">
+        <h2>IIIT Naya Raipur</h2>
+        <p>Visitor Management System</p>
+      </div>
+    </div>
+    <h1>Admin Login</h1>
+    <p class="subtitle">Sign in to access the admin dashboard.</p>
+    <div class="error-msg" id="loginError">Invalid username or password.</div>
+    <div class="input-group">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Enter username" autocomplete="username"/>
+    </div>
+    <div class="input-group">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Enter password" autocomplete="current-password"/>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()">Sign in</button>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app">
+  <!-- Top nav -->
+  <nav class="topnav">
+    <div class="topnav-left">
+      <div class="topnav-brand">Visi<span>Gate</span> Admin</div>
+      <div class="topnav-tabs">
+        <button class="tab active" id="tab-live"      onclick="showPage('live')">🟢 Live</button>
+        <button class="tab"        id="tab-map"       onclick="showPage('map')">🗺️ Map</button>
+        <button class="tab"        id="tab-all"       onclick="showPage('all')">📋 All Visits</button>
+        <button class="tab"        id="tab-blacklist" onclick="showPage('blacklist')">🚫 Blacklist</button>
+      </div>
+    </div>
+    <div class="topnav-right">
+      <button class="acct-btn" id="acctBtn" onclick="toggleDropdown()">A</button>
+      <div class="dropdown" id="acctDropdown">
+        <div class="dropdown-header">
+          <strong id="ddUsername">Admin</strong>
+          <span>IIIT NR VisiGate</span>
+        </div>
+        <button class="dropdown-item" onclick="openModal('addAccountModal')">➕ Add new account</button>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item danger" onclick="doLogout()">↩ Sign out</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ── LIVE VISITORS ── -->
+    <div class="page active" id="page-live">
+      <div class="page-header">
+        <h2><span class="live-dot"></span>Live Visitors</h2>
+        <p>Currently inside campus · auto-refreshes every 30 seconds</p>
+      </div>
+      <div class="stats">
+        <div class="stat-card"><div class="val primary" id="statInside">—</div><div class="lbl">Inside now</div></div>
+        <div class="stat-card"><div class="val" id="statToday">—</div><div class="lbl">Visits today</div></div>
+        <div class="stat-card"><div class="val" id="statTotal">—</div><div class="lbl">Total visits</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Visitors on campus</h3>
+          <button class="btn btn-ghost" style="font-size:.82rem;padding:7px 14px" onclick="loadLive()">↻ Refresh</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Photo</th><th>Name</th><th>Mobile</th>
+              <th>ID</th><th>Check-in</th><th>Pass ID</th><th>Action</th>
+            </tr></thead>
+            <tbody id="liveBody"></tbody>
+          </table>
+          <div id="liveEmpty" class="empty-state" style="display:none">
+            <div class="icon">🏫</div><p>No visitors currently inside</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MAP PAGE ── -->
+    <div class="page" id="page-map">
+      <div class="page-header">
+        <h2>Campus Map — Live Visitors</h2>
+        <p>All visitors currently inside, shown on IIIT Naya Raipur campus</p>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Live positions</h3>
+          <button class="btn btn-ghost" style="font-size:.82rem;padding:7px 14px" onclick="loadOverviewMap()">↻ Refresh</button>
+        </div>
+        <div style="padding:16px">
+          <div id="overviewMap"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ALL VISITS ── -->
+    <div class="page" id="page-all">
+      <div class="page-header">
+        <h2>All Visits</h2>
+        <p>Complete visitor log with search and filters</p>
+      </div>
+      <div class="card">
+        <div class="filters">
+          <input type="text"  id="searchInput" placeholder="Search name or mobile…" oninput="loadAll()"/>
+          <input type="date"  id="dateFilter"  onchange="loadAll()"/>
+          <select id="statusFilter" onchange="loadAll()">
+            <option value="">All statuses</option>
+            <option value="inside">Inside</option>
+            <option value="checked_in">Checked in</option>
+            <option value="checked_out">Exited</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Photo</th><th>Name</th><th>Mobile</th>
+              <th>Status</th><th>Check-in</th><th>Check-out</th><th>Pass ID</th>
+            </tr></thead>
+            <tbody id="allBody"></tbody>
+          </table>
+          <div id="allEmpty" class="empty-state" style="display:none">
+            <div class="icon">🔍</div><p>No visitors match your filters</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BLACKLIST ── -->
+    <div class="page" id="page-blacklist">
+      <div class="page-header">
+        <h2>Blacklist</h2>
+        <p>Blocked mobile numbers — these visitors cannot check in</p>
+      </div>
+      <div class="card">
+        <div class="blacklist-form">
+          <div class="input-group">
+            <label>Mobile number</label>
+            <input type="tel" id="blMobile" placeholder="10-digit mobile number"/>
+          </div>
+          <div class="input-group">
+            <label>Reason</label>
+            <input type="text" id="blReason" placeholder="Why are they blocked?"/>
+          </div>
+          <button class="btn btn-danger" onclick="addBlacklist()">+ Block number</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Mobile</th><th>Reason</th><th>Blocked on</th><th>Action</th></tr></thead>
+            <tbody id="blBody"></tbody>
+          </table>
+          <div id="blEmpty" class="empty-state" style="display:none">
+            <div class="icon">✅</div><p>No numbers blacklisted</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══ VISITOR DETAIL MODAL ═══ -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="detailTitle">Visitor Detail</h3>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Photo + basic info -->
+      <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:16px">
+        <img id="visitorPhotoLg" src="" class="visitor-photo-lg" style="display:none"/>
+        <div id="visitorPhotoPlaceholder" class="photo-placeholder-lg">👤</div>
+        <div style="flex:1">
+          <div class="detail-grid">
+            <div class="detail-section">
+              <h4>Visitor Info</h4>
+              <div class="detail-row"><span class="lbl">Name</span><span class="val" id="dName">—</span></div>
+              <div class="detail-row"><span class="lbl">Age</span><span class="val" id="dAge">—</span></div>
+              <div class="detail-row"><span class="lbl">Mobile</span><span class="val" id="dMobile">—</span></div>
+              <div class="detail-row"><span class="lbl">ID Type</span><span class="val" id="dIdType">—</span></div>
+              <div class="detail-row"><span class="lbl">ID Number</span><span class="val" id="dIdNum">—</span></div>
+            </div>
+            <div class="detail-section">
+              <h4>Visit Info</h4>
+              <div class="detail-row"><span class="lbl">Pass ID</span><span class="val" id="dPassId" style="font-size:.78rem;color:var(--primary)">—</span></div>
+              <div class="detail-row"><span class="lbl">Status</span><span class="val" id="dStatus">—</span></div>
+              <div class="detail-row"><span class="lbl">Check-in</span><span class="val" id="dCheckIn">—</span></div>
+              <div class="detail-row"><span class="lbl">Check-out</span><span class="val" id="dCheckOut">—</span></div>
+              <div class="detail-row"><span class="lbl">Location saved</span><span class="val" id="dPreserve">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preserve toggle -->
+      <div class="preserve-toggle" id="preserveToggle">
+        <span id="preserveIcon">⚠️</span>
+        <div style="flex:1">
+          <div style="font-weight:600" id="preserveLabel">Location data will be deleted after 7 days</div>
+          <div style="font-size:.78rem;margin-top:2px" id="preserveSub">Toggle to save permanently for investigation</div>
+        </div>
+        <button class="btn" id="preserveBtn" style="font-size:.8rem;padding:7px 14px" onclick="togglePreserve()">Save permanently</button>
+      </div>
+
+      <!-- Location map -->
+      <div class="detail-section" style="margin-bottom:16px">
+        <h4>Location Trail</h4>
+        <div id="detailMap" style="margin-top:12px"></div>
+        <div id="noMap" style="display:none;color:var(--muted);font-size:.83rem;padding:10px 0">No location data recorded yet.</div>
+      </div>
+
+      <!-- Location gaps -->
+      <div class="detail-section" style="margin-bottom:16px">
+        <h4>Location Gaps</h4>
+        <div id="gapsList" style="margin-top:8px"></div>
+        <div id="noGaps" style="color:var(--muted);font-size:.83rem;padding:6px 0">No location gaps recorded.</div>
+      </div>
+
+      <!-- Past visits -->
+      <div class="detail-section">
+        <h4>Past Visits (same mobile)</h4>
+        <div id="pastVisits" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="action-row">
+      <button class="btn btn-ghost" id="exitBtn" onclick="openExitModal()">🚪 Manual exit</button>
+      <button class="btn btn-ghost" id="blockBtn" onclick="blockFromDetail()">🚫 Block visitor</button>
+      <button class="btn btn-danger" onclick="openDeleteConfirm()">🗑 Delete record</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MANUAL EXIT MODAL ═══ -->
+<div class="modal-overlay" id="exitModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h3>Manual Exit</h3>
+      <button class="modal-close" onclick="closeModal('exitModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:.88rem;margin-bottom:4px">Select a reason for marking this visitor as exited:</p>
+      <div class="radio-group">
+        <label class="radio-opt"><input type="radio" name="exitReason" value="Phone Dead"/> Phone Dead</label>
+        <label class="radio-opt"><input type="radio" name="exitReason" value="QR Not Working"/> QR Not Working</label>
+        <label class="radio-opt"><input type="radio" name="exitReason" value="Other"/> Other</label>
+      </div>
+      <input type="text" id="exitOtherText" placeholder="Describe reason…"
+        style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;font-family:inherit;display:none;margin-bottom:4px;outline:none"/>
+      <br/>
+      <button class="btn btn-danger btn-full" style="margin-top:12px" onclick="confirmExit()">Confirm Exit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DELETE CONFIRM MODAL ═══ -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal confirm-modal">
+    <div class="modal-header">
+      <h3>Delete Visitor Record</h3>
+      <button class="modal-close" onclick="closeModal('deleteModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>This will permanently delete <strong id="deleteVisitorName"></strong>'s record, including all location data, guard logs, and their photo. This cannot be undone.</p>
+      <div class="btn-row">
+        <button class="btn btn-ghost" style="flex:1" onclick="closeModal('deleteModal')">Cancel</button>
+        <button class="btn btn-danger" style="flex:1" onclick="confirmDelete()">Yes, delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ADD ACCOUNT MODAL ═══ -->
+<div class="modal-overlay" id="addAccountModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h3>Add New Admin Account</h3>
+      <button class="modal-close" onclick="closeModal('addAccountModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="input-group">
+        <label>Username</label>
+        <input type="text" id="newUser" placeholder="New admin username"/>
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="newPass" placeholder="New admin password"/>
+      </div>
+      <div class="error-msg" id="addAcctError"></div>
+      <button class="btn btn-primary btn-full" onclick="createAccount()">Create account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
