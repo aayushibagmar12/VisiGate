@@ -16,6 +16,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve visitor frontend
 app.use(express.static(path.join(__dirname, '../visitor')));
+app.use(express.static(path.join(__dirname, '..')));
 
 // Serve uploaded photos
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
