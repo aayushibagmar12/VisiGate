@@ -18,6 +18,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '../visitor')));
 app.use(express.static(path.join(__dirname, '..')));
 
+// Serve guard frontend
+app.use('/guard', express.static(path.join(__dirname, '../guard')));
+
 // Serve uploaded photos
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -180,6 +183,35 @@ app.post('/api/visitor/checkout', (req, res) => {
   }
 });
 
+// POST /api/visitor/upload-photo
+app.post('/api/visitor/upload-photo', (req, res) => {
+  try {
+    const { photo } = req.body;
+    if (!photo)
+      return res.status(400).json({ success: false, message: 'Photo data is required.' });
+
+    const photo_path = saveBase64Photo(photo);
+    res.json({ success: true, photo_path });
+  } catch (err) {
+    console.error('Photo upload error:', err);
+    res.status(500).json({ success: false, message: 'Server error uploading photo.' });
+  }
+});
+
+// GET /api/visitor/status/:pass_id
+app.get('/api/visitor/status/:pass_id', (req, res) => {
+  try {
+    const visitor = db.prepare('SELECT status, check_in, check_out FROM visitors WHERE pass_id = ?').get(req.params.pass_id);
+    if (!visitor)
+      return res.json({ success: true, status: 'not_found' });
+
+    res.json({ success: true, status: visitor.status, check_in: visitor.check_in, check_out: visitor.check_out });
+  } catch (err) {
+    console.error('Status poll error:', err);
+    res.status(500).json({ success: false, message: 'Server error checking status.' });
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════════════════════
 //  LOCATION ROUTES
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -279,15 +311,39 @@ app.get('/api/guard/scan/:pass_id', (req, res) => {
 });
 
 // POST /api/guard/entry
+// Creates visitor record in DB (if not exists) and confirms entry
 app.post('/api/guard/entry', (req, res) => {
   try {
-    const { pass_id, note } = req.body;
-    if (!pass_id)
-      return res.status(400).json({ success: false, message: 'pass_id is required.' });
+    const { pass_id, name, age, mobile, id_type, id_number, photo_path, note } = req.body;
+    if (!pass_id || !name || !mobile)
+      return res.status(400).json({ success: false, message: 'pass_id, name, and mobile are required.' });
 
+    // Blacklist check
+    const blocked = db.prepare('SELECT * FROM blacklist WHERE mobile = ?').get(mobile);
+    if (blocked)
+      return res.status(403).json({
+        success: false,
+        message: `Entry denied. Blacklisted. Reason: ${blocked.reason || 'Not specified'}`
+      });
+
+    // Check if visitor already exists (e.g. re-scan)
+    const existing = db.prepare('SELECT * FROM visitors WHERE pass_id = ?').get(pass_id);
+
+    if (!existing) {
+      // Create the visitor record
+      const check_in = new Date().toISOString();
+      db.prepare(`
+        INSERT INTO visitors (pass_id, name, age, mobile, id_type, id_number, photo_path, status, check_in)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'inside', ?)
+      `).run(pass_id, name, age || null, mobile, id_type || null, id_number || null, photo_path || null, check_in);
+    } else {
+      // Update status to inside
+      db.prepare(`UPDATE visitors SET status = 'inside' WHERE pass_id = ?`).run(pass_id);
+    }
+
+    // Log guard action
     db.prepare(`INSERT INTO guard_logs (pass_id, action, note) VALUES (?, 'entry', ?)`)
-      .run(pass_id, note || null);
-    db.prepare(`UPDATE visitors SET status = 'inside' WHERE pass_id = ?`).run(pass_id);
+      .run(pass_id, note || 'Guard verified entry via QR');
 
     res.json({ success: true, message: 'Entry confirmed.' });
   } catch (err) {
@@ -314,6 +370,47 @@ app.post('/api/guard/exit', (req, res) => {
   } catch (err) {
     console.error('Guard exit error:', err);
     res.status(500).json({ success: false, message: 'Server error confirming exit.' });
+  }
+});
+
+// GET /api/guard/active?search=name_or_mobile
+app.get('/api/guard/active', (req, res) => {
+  try {
+    const { search } = req.query;
+    let query = `SELECT * FROM visitors WHERE status IN ('inside', 'checked_in')`;
+    const params = [];
+
+    if (search) {
+      query += ' AND (name LIKE ? OR mobile LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`);
+    }
+
+    query += ' ORDER BY check_in DESC';
+
+    const visitors = db.prepare(query).all(...params);
+    res.json({ success: true, visitors });
+  } catch (err) {
+    console.error('Guard active search error:', err);
+    res.status(500).json({ success: false, message: 'Server error searching active visitors.' });
+  }
+});
+
+// GET /api/guard/logs/today
+app.get('/api/guard/logs/today', (req, res) => {
+  try {
+    const logs = db.prepare(`
+      SELECT
+        gl.id, gl.pass_id, gl.action, gl.note, gl.created_at,
+        v.name AS visitor_name, v.mobile AS visitor_mobile
+      FROM guard_logs gl
+      LEFT JOIN visitors v ON v.pass_id = gl.pass_id
+      WHERE date(gl.created_at) = date('now', 'localtime')
+      ORDER BY gl.created_at DESC
+    `).all();
+    res.json({ success: true, logs });
+  } catch (err) {
+    console.error('Guard today logs error:', err);
+    res.status(500).json({ success: false, message: 'Server error fetching today\'s logs.' });
   }
 });
 

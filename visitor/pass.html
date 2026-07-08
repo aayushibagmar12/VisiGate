@@ -11,9 +11,9 @@
 </head>
 <body>
 
-    <!-- SCREEN 1: entry pass with QR -->
-    <div class="form-container" id="screen-entry">
-        <div class="loc-icon-wrap granted">🎫</div>
+    <!-- SCREEN 1: waiting for guard to scan -->
+    <div class="form-container" id="screen-waiting">
+        <div class="loc-icon-wrap idle">🎫</div>
         <h1>Visitor Pass</h1>
         <p class="subtitle">Show this QR code to the guard at the gate.</p>
 
@@ -26,21 +26,38 @@
             </div>
         </div>
 
-        <p class="steps-title" style="text-align:center; margin-bottom:0.75rem;">Entry QR Code</p>
-        <div id="qr-entry" class="qr-wrap"></div>
+        <p class="steps-title" style="text-align:center; margin-bottom:0.75rem;">Your QR Code</p>
+        <div id="qr-code" class="qr-wrap"></div>
 
-        <div class="alert-box warning" style="margin-top:1.25rem;">
+        <!-- Auto-entry countdown (trial mode) -->
+        <div id="auto-entry-countdown" class="hidden" style="margin-top:1.25rem; text-align:center;">
+            <div style="display:inline-flex; align-items:center; gap:10px; background:#ede9fe; border:1px solid #c4b5fd; border-radius:10px; padding:10px 18px;">
+                <div class="spinner" style="width:18px; height:18px; border-width:2px;"></div>
+                <span style="font-size:0.88rem; color:#4f46e5; font-weight:600;">
+                    Auto-entry in <span id="auto-entry-num">5</span>s
+                    <span style="font-weight:400; color:#6b7280;">(trial mode)</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Waiting spinner (shown while polling after auto-entry fires) -->
+        <div class="spinner-wrap" style="margin-top:1rem;">
+            <div class="spinner"></div>
+            <span>Waiting for entry confirmation…</span>
+        </div>
+
+        <div class="alert-box warning" style="margin-top:1rem;">
             ⚠️ Do not close this tab until you exit the campus.
         </div>
     </div>
 
-    <!-- SCREEN 2: exit pass (shown after guard scans entry QR) -->
-    <div class="form-container hidden" id="screen-exit">
+    <!-- SCREEN 2: inside campus (guard confirmed entry) -->
+    <div class="form-container hidden" id="screen-inside">
         <div class="loc-icon-wrap granted">✅</div>
         <h1>You're Inside!</h1>
-        <p class="subtitle">Show this QR code to the guard when you leave.</p>
+        <p class="subtitle">The guard has verified your entry. Show this QR to the guard when you leave.</p>
 
-        <p class="steps-title" style="text-align:center; margin-bottom:0.75rem;">Exit QR Code</p>
+        <p class="steps-title" style="text-align:center; margin-bottom:0.75rem;">Your QR Code</p>
         <div id="qr-exit" class="qr-wrap"></div>
 
         <div class="alert-box success" style="margin-top:1.25rem;">
@@ -56,7 +73,7 @@
         </button>
     </div>
 
-    <!-- SCREEN 3: checked out -->
+    <!-- SCREEN 3: visit complete (checked out) -->
     <div class="form-container hidden" id="screen-done">
         <div class="loc-icon-wrap" style="background:#f3f4f6;">👋</div>
         <h1>Visit Complete</h1>
@@ -67,6 +84,16 @@
         <div class="pass-row" style="justify-content:center; margin-top:0.5rem;">
             <span class="pass-label">Total time on campus:</span>
             <span class="pass-value" id="total-time" style="margin-left:8px;">—</span>
+        </div>
+    </div>
+
+    <!-- SCREEN 4: blocked (blacklisted) -->
+    <div class="form-container hidden" id="screen-blocked">
+        <div class="loc-icon-wrap denied">🚫</div>
+        <h1>Entry Denied</h1>
+        <p class="subtitle">You have been blocked from entering the campus.</p>
+        <div class="alert-box error" id="blocked-reason">
+            Your mobile number is on the blacklist. Please contact administration.
         </div>
     </div>
 

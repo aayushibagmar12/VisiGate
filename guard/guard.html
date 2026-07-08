@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VisiGate Guard — IIIT Naya Raipur</title>
+  <meta name="description" content="Guard checkpoint app for scanning visitor QR codes and managing campus entry/exit."/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="guard.css"/>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="guard-header">
+  <div class="guard-brand">
+    <span class="live-dot"></span>
+    Visi<span>Gate</span> Guard
+  </div>
+  <div class="guard-badge">🛡️ Checkpoint</div>
+</header>
+
+<!-- ═══ MAIN ═══ -->
+<main class="guard-main">
+
+  <!-- ── SCAN BUTTONS ── -->
+  <div class="action-grid" id="actionGrid">
+    <button class="action-btn entry" onclick="startScan('ENTRY')">
+      <div class="icon">🟢</div>
+      <div class="label">Scan Entry QR</div>
+      <div class="sublabel">Visitor arriving</div>
+    </button>
+    <button class="action-btn exit" onclick="startScan('EXIT')">
+      <div class="icon">🔴</div>
+      <div class="label">Scan Exit QR</div>
+      <div class="sublabel">Visitor leaving</div>
+    </button>
+  </div>
+
+  <!-- ── VISITOR RESULT (after QR scan) ── -->
+  <div class="card result-card hidden" id="resultCard">
+    <div class="card-header">
+      <h3 id="resultTitle">📋 Visitor Details</h3>
+    </div>
+    <div class="card-body">
+      <!-- Photo + name -->
+      <div class="visitor-header">
+        <img id="resultPhoto" src="" class="visitor-photo" style="display:none"/>
+        <div id="resultPhotoPlaceholder" class="visitor-photo-placeholder">👤</div>
+        <div>
+          <div class="visitor-name" id="resultName">—</div>
+          <div class="visitor-pass-id" id="resultPassId">—</div>
+        </div>
+      </div>
+
+      <!-- Details -->
+      <div class="detail-rows">
+        <div class="detail-row"><span class="lbl">Mobile</span><span class="val" id="resultMobile">—</span></div>
+        <div class="detail-row"><span class="lbl">Age</span><span class="val" id="resultAge">—</span></div>
+        <div class="detail-row"><span class="lbl">ID Type</span><span class="val" id="resultIdType">—</span></div>
+        <div class="detail-row"><span class="lbl">ID Number</span><span class="val" id="resultIdNum">—</span></div>
+        <div class="detail-row"><span class="lbl">Check-in</span><span class="val" id="resultCheckIn">—</span></div>
+        <div class="detail-row"><span class="lbl">Status</span><span class="val" id="resultStatus">—</span></div>
+      </div>
+
+      <!-- Time on campus (exit only) -->
+      <div class="time-on-campus hidden" id="timeOnCampus">
+        <div>⏱️ Time on campus</div>
+        <div class="time-val" id="timeOnCampusVal">—</div>
+      </div>
+
+      <!-- Mismatch warning -->
+      <div class="alert-box warning hidden" id="mismatchWarning">
+        ⚠️ QR type does not match selected mode. Please verify carefully.
+      </div>
+
+      <!-- Already exited warning -->
+      <div class="alert-box info hidden" id="alreadyExitedWarning">
+        ℹ️ This visitor has already checked out.
+      </div>
+
+      <!-- Confirm buttons -->
+      <div class="confirm-actions">
+        <button class="btn btn-ghost" onclick="cancelResult()">Cancel</button>
+        <button class="btn btn-success hidden" id="btnConfirmEntry" onclick="confirmEntry()">✅ Confirm Entry</button>
+        <button class="btn btn-danger hidden" id="btnConfirmExit" onclick="confirmExit()">🚪 Confirm Exit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MANUAL EXIT SECTION ── -->
+  <div class="card" id="manualExitCard">
+    <div class="card-header">
+      <h3>🔍 Manual Exit</h3>
+    </div>
+    <div class="card-body">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="manualSearch" placeholder="Search by name or mobile number…" oninput="searchActive()"/>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+    </div>
+  </div>
+
+  <!-- ── TODAY'S LOG ── -->
+  <div class="card">
+    <div class="card-header">
+      <h3>📋 Today's Log</h3>
+      <button class="btn btn-ghost btn-sm" onclick="loadTodayLog()">↻ Refresh</button>
+    </div>
+    <div class="log-table-wrap">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>Visitor</th>
+            <th>Action</th>
+            <th>Time</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody id="logBody"></tbody>
+      </table>
+      <div id="logEmpty" class="empty-state" style="display:none">
+        <div class="icon">📭</div>
+        <p>No activity recorded today</p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ═══ QR SCANNER OVERLAY ═══ -->
+<div class="scanner-overlay" id="scannerOverlay">
+  <div class="scanner-header">
+    <h2 id="scannerTitle">Scanning Entry QR</h2>
+    <p>Point the camera at the visitor's QR code</p>
+  </div>
+  <div id="qr-reader"></div>
+  <button class="scanner-cancel" onclick="stopScan()">Cancel</button>
+</div>
+
+<!-- ═══ MANUAL EXIT REASON MODAL ═══ -->
+<div class="modal-overlay" id="reasonModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Manual Exit — Reason</h3>
+      <button class="modal-close" onclick="closeReasonModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--muted);font-size:.85rem;margin-bottom:14px">
+        Marking exit for <strong id="reasonVisitorName">—</strong>. Select a reason:
+      </p>
+      <div class="radio-group">
+        <label class="radio-opt"><input type="radio" name="exitReason" value="Phone Dead"/> Phone Dead</label>
+        <label class="radio-opt"><input type="radio" name="exitReason" value="QR Not Working"/> QR Not Working</label>
+        <label class="radio-opt"><input type="radio" name="exitReason" value="Other"/> Other</label>
+      </div>
+      <input type="text" class="other-input hidden" id="otherReasonInput" placeholder="Describe reason…"/>
+      <button class="btn btn-danger" onclick="confirmManualExit()">Confirm Manual Exit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast"></div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="guard.js"></script>
+</body>
+</html>

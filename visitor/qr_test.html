@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<div id="qr-code"></div>
+<div id="result"></div>
+<script>
+window.onload = function() {
+  const resultEl = document.getElementById('result');
+  try {
+    const qrData = JSON.stringify({
+      passId: 'VG-TEST123-ABCD',
+      name: 'Test Visitor',
+      age: 25,
+      mobile: '9876543210',
+      id_type: 'adhar',
+      id_number: '123456789012',
+      photo_path: '/uploads/test.jpg',
+      time: new Date().toISOString()
+    });
+    new QRCode(document.getElementById('qr-code'), {
+      text: qrData, width: 220, height: 220,
+      colorDark: '#111827', colorLight: '#ffffff'
+    });
+    resultEl.textContent = 'SUCCESS: QR generated, data length=' + qrData.length;
+  } catch(e) {
+    resultEl.textContent = 'ERROR: ' + e.message;
+  }
+};
+</script>
+</body>
+</html>

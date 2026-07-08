@@ -182,6 +182,7 @@ async function loadLive() {
     inside.forEach(v => {
       const tr = document.createElement('tr');
       tr.classList.add('clickable');
+      tr.dataset.visitorId = v.id;
       tr.innerHTML = `
         <td>${photoCell(v.photo_path)}</td>
         <td><strong>${esc(v.name)}</strong></td>
@@ -295,6 +296,7 @@ async function loadAll() {
     visitors.forEach(v => {
       const tr = document.createElement('tr');
       tr.classList.add('clickable');
+      tr.dataset.visitorId = v.id;
       tr.innerHTML = `
         <td>${photoCell(v.photo_path)}</td>
         <td><strong>${esc(v.name)}</strong></td>
@@ -525,10 +527,10 @@ async function confirmExit() {
   }
 
   try {
-    const res  = await fetch(`${API}/visitor/checkout`, {
+    const res  = await fetch(`${API}/guard/exit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pass_id: currentPassId })
+      body: JSON.stringify({ pass_id: currentPassId, note: `Admin manual exit — ${reason}` })
     });
     const data = await res.json();
     if (data.success) {
@@ -558,7 +560,12 @@ async function confirmDelete() {
       toast('Visitor record deleted', 'success');
       closeModal('deleteModal');
       closeModal('detailModal');
+      // Immediately remove matching rows from both visible tables
+      document.querySelectorAll(`[data-visitor-id="${currentVisitorId}"]`)
+        .forEach(row => row.remove());
+      // Then refresh tables in background to sync server state
       loadLive();
+      loadAll();
     } else {
       toast(data.message || 'Delete failed', 'error');
     }
