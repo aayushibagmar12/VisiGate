@@ -203,6 +203,7 @@ async function confirmEntry() {
             toast('✅ Entry confirmed — visitor allowed in', 'success');
             cancelResult();
             loadTodayLog();
+            loadInsideList();
         } else {
             toast(data.message || 'Entry failed', 'error');
         }
@@ -236,6 +237,7 @@ async function confirmExit() {
             toast('🚪 Exit confirmed — visitor checked out', 'success');
             cancelResult();
             loadTodayLog();
+            loadInsideList();
         } else {
             toast(data.message || 'Exit failed', 'error');
         }
@@ -369,6 +371,7 @@ async function confirmManualExit() {
             document.getElementById('manualSearch').value = '';
             document.getElementById('searchResults').innerHTML = '';
             loadTodayLog();
+            loadInsideList();
         } else {
             toast(data.message || 'Exit failed', 'error');
         }
@@ -383,6 +386,7 @@ async function confirmManualExit() {
 
 async function loadTodayLog() {
     try {
+        // Fetch today's guard log entries
         const res  = await fetch(`${API}/guard/logs/today`);
         const data = await res.json();
         const logs = data.logs || [];
@@ -396,6 +400,17 @@ async function loadTodayLog() {
         }
         document.getElementById('logEmpty').style.display = 'none';
 
+        // Fetch current status for all unique pass_ids in this log batch
+        const passIds = [...new Set(logs.map(l => l.pass_id).filter(Boolean))];
+        const statusMap = {};
+        await Promise.all(passIds.map(async pid => {
+            try {
+                const r = await fetch(`${API}/visitor/status/${encodeURIComponent(pid)}`);
+                const d = await r.json();
+                if (d.success) statusMap[pid] = d.status;
+            } catch { /* silent */ }
+        }));
+
         logs.forEach(log => {
             const tr = document.createElement('tr');
             const actionBadge = log.action === 'entry'
@@ -404,6 +419,13 @@ async function loadTodayLog() {
                     ? '<span class="badge badge-manual">⚡ Manual Exit</span>'
                     : '<span class="badge badge-exit">↗ Exit</span>';
 
+            const currentStatus = statusMap[log.pass_id];
+            const campusStatusBadge = (currentStatus === 'inside' || currentStatus === 'checked_in')
+                ? '<span class="badge badge-entry">● Inside</span>'
+                : (currentStatus === 'checked_out')
+                    ? '<span class="badge badge-exit">✓ Exited</span>'
+                    : '<span class="badge badge-manual">— Unknown</span>';
+
             tr.innerHTML = `
                 <td>
                     <strong>${esc(log.visitor_name || '—')}</strong><br/>
@@ -411,6 +433,7 @@ async function loadTodayLog() {
                 </td>
                 <td>${actionBadge}</td>
                 <td>${fmtTime(log.created_at)}</td>
+                <td>${campusStatusBadge}</td>
                 <td style="font-size:.78rem;color:var(--muted)">${esc(log.note || '—')}</td>`;
             tbody.appendChild(tr);
         });
@@ -466,10 +489,11 @@ function toast(msg, type = 'info') {
     setTimeout(() => t.className = '', 3000);
 }
 
+
 // ═══════════════════════════════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════════════════════════════
 
 loadTodayLog();
-// Auto-refresh log every 30 seconds
+// Auto-refresh every 30 seconds
 setInterval(loadTodayLog, 30000);

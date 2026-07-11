@@ -629,3 +629,5 @@ body {
 #toast.success { background: var(--success-light); color: var(--success); border: 1px solid #bbf7d0; }
 #toast.error   { background: var(--danger-light);  color: var(--danger);  border: 1px solid #fecaca; }
 #toast.info    { background: var(--primary-light);  color: var(--primary); border: 1px solid #c7d2fe; }
+
+

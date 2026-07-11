@@ -154,16 +154,23 @@ function showPage(name) {
 
 async function loadLive() {
   try {
-    const [insideRes, allRes] = await Promise.all([
+    // Fetch both 'inside' and 'checked_in' visitors for the live view
+    const [insideRes, checkedInRes, allRes] = await Promise.all([
       fetch(`${API}/admin/visitors?status=inside`),
+      fetch(`${API}/admin/visitors?status=checked_in`),
       fetch(`${API}/admin/visitors`)
     ]);
-    const insideData = await insideRes.json();
-    const allData    = await allRes.json();
+    const insideData    = await insideRes.json();
+    const checkedInData = await checkedInRes.json();
+    const allData       = await allRes.json();
 
-    const inside = insideData.visitors || [];
-    const all    = allData.visitors    || [];
-    const today  = new Date().toDateString();
+    // Combine inside + checked_in (de-dup by id just in case)
+    const insideAll = [...(insideData.visitors || []), ...(checkedInData.visitors || [])];
+    const seen = new Set();
+    const inside = insideAll.filter(v => { if (seen.has(v.id)) return false; seen.add(v.id); return true; });
+
+    const all   = allData.visitors || [];
+    const today = new Date().toDateString();
     const todayV = all.filter(v => v.check_in && new Date(v.check_in).toDateString() === today);
 
     document.getElementById('statInside').textContent = inside.length;
