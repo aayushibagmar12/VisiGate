@@ -38,14 +38,21 @@ function timeDiff(start, end) {
 }
 
 // ── get data from sessionStorage ──
-const passId    = sessionStorage.getItem('visitor_pass_id') || 'VG-DEMO01';
-const name      = sessionStorage.getItem('visitor_name') || 'Visitor';
+const passId    = sessionStorage.getItem('visitor_pass_id');
+const name      = sessionStorage.getItem('visitor_name');
 const age       = sessionStorage.getItem('visitor_age');
 const mobile    = sessionStorage.getItem('visitor_mobile');
 const id_type   = sessionStorage.getItem('visitor_id_type');
 const id_number = sessionStorage.getItem('visitor_id_number');
 const photo     = sessionStorage.getItem('visitor_photo');
 const checkIn   = new Date();
+
+// ── Guard: if session is empty (e.g. page refreshed after exit), go back home ──
+if (!passId || !name || !mobile) {
+    window.location.replace('index.html');
+    // Stop executing the rest of this script
+    throw new Error('No session — redirecting to index.html');
+}
 
 // ── fill pass details ──
 document.getElementById('pass-name').textContent = name;
@@ -183,13 +190,17 @@ async function autoConfirmEntry(qrData) {
             }),
         });
         const data = await res.json();
-        if (!data.success) {
-            dbg('dbg-entry', '❌ Blocked: ' + data.message);
-            // Blacklisted — show blocked screen
+
+        if (res.status === 403) {
+            // Explicitly blacklisted by admin — show blocked screen
+            dbg('dbg-entry', '❌ Blacklisted: ' + data.message);
             const msg = document.getElementById('blocked-reason');
             if (msg) msg.textContent = data.message;
             showScreen('blocked');
             stopPolling();
+        } else if (!data.success) {
+            // Any other error (400, 500, etc.) — log but do NOT block the visitor
+            dbg('dbg-entry', '⚠️ Auto-entry warning (non-blocking): ' + data.message);
         } else {
             dbg('dbg-entry', '✅ Auto-entry confirmed! Waiting for poll…');
         }
