@@ -413,11 +413,6 @@ async function loadTodayLog() {
 
         logs.forEach(log => {
             const tr = document.createElement('tr');
-            const actionBadge = log.action === 'entry'
-                ? '<span class="badge badge-entry">↙ Entry</span>'
-                : log.note && log.note.startsWith('Manual')
-                    ? '<span class="badge badge-manual">⚡ Manual Exit</span>'
-                    : '<span class="badge badge-exit">↗ Exit</span>';
 
             const currentStatus = statusMap[log.pass_id];
             const campusStatusBadge = (currentStatus === 'inside' || currentStatus === 'checked_in')
@@ -431,7 +426,7 @@ async function loadTodayLog() {
                     <strong>${esc(log.visitor_name || '—')}</strong><br/>
                     <span style="font-size:.72rem;color:var(--muted)">${esc(log.visitor_mobile || '')}</span>
                 </td>
-                <td>${actionBadge}</td>
+
                 <td>${fmtTime(log.created_at)}</td>
                 <td>${campusStatusBadge}</td>
                 <td style="font-size:.78rem;color:var(--muted)">${esc(log.note || '—')}</td>`;
