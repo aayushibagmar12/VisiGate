@@ -334,25 +334,6 @@ function startTracking() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  SELF-CHECKOUT (fallback if guard doesn't scan exit)
-// ═══════════════════════════════════════════════════════════════════════════════
-
-document.getElementById('btn-exit').addEventListener('click', async () => {
-    try {
-        await fetch(`${BACKEND}/api/visitor/checkout`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pass_id: passId }),
-        });
-    } catch (_) {}
-    const checkOut = new Date();
-    document.getElementById('total-time').textContent = timeDiff(checkIn, checkOut);
-    showScreen('done');
-    stopPolling();
-    sessionStorage.clear();
-});
-
-// ═══════════════════════════════════════════════════════════════════════════════
 //  START
 // ═══════════════════════════════════════════════════════════════════════════════
 

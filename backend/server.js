@@ -398,6 +398,7 @@ app.get('/api/guard/active', (req, res) => {
 // GET /api/guard/logs/today
 app.get('/api/guard/logs/today', (req, res) => {
   try {
+    res.set('Cache-Control', 'no-store');
     const logs = db.prepare(`
       SELECT
         gl.id, gl.pass_id, gl.action, gl.note, gl.created_at,
