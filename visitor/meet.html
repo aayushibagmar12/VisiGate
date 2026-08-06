@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whom to Meet</title>
+    <meta name="description" content="Enter details of the student you are visiting.">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <script src="login-guard.js"></script>
+    <div class="form-container">
+        <h1>Whom Are You Meeting?</h1>
+        <p class="subtitle">Enter the student's enrollment number and your reason for visiting.</p>
+
+        <form id="meet-form">
+            <div class="input-group">
+                <label for="enrollment">Enrollment Number</label>
+                <input type="text" id="enrollment" name="enrollment" placeholder="e.g., 2021BCS045" required>
+            </div>
+
+            <div class="input-group">
+                <label for="reason">Reason for Visit</label>
+                <input type="text" id="reason" name="reason" placeholder="e.g., Meeting my son/daughter" required>
+            </div>
+
+            <p class="error-text" id="meet-error" style="display:none;"></p>
+            <button type="submit" class="submit-btn" id="meet-submit-btn">Continue</button>
+        </form>
+    </div>
+
+    <script src="meet.js"></script>
+</body>
+</html>

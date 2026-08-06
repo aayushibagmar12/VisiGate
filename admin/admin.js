@@ -343,9 +343,35 @@ async function openDetail(id) {
     document.getElementById('dMobile').textContent  = visitor.mobile;
     document.getElementById('dIdType').textContent  = visitor.id_type || '—';
     document.getElementById('dIdNum').textContent   = visitor.id_number || '—';
+    document.getElementById('dAccompanying').textContent = visitor.accompanying_count || '0';
+    document.getElementById('dVehicle').textContent      = visitor.vehicle_number || '—';
+
+    const dIdPhotoEl = document.getElementById('dIdPhoto');
+    if (visitor.id_photo_path) {
+      dIdPhotoEl.innerHTML = `<a href="http://localhost:3000${visitor.id_photo_path}" target="_blank">View Photo</a>`;
+    } else {
+      dIdPhotoEl.textContent = '—';
+    }
+
     document.getElementById('dPassId').textContent  = visitor.pass_id;
     document.getElementById('dStatus').innerHTML    = statusBadge(visitor.status);
-    document.getElementById('dCheckIn').textContent = fmtTime(visitor.check_in);
+
+    // Fetch meeting approval status
+    (async () => {
+      const dMeetStatusEl = document.getElementById('dMeetStatus');
+      try {
+        const meetRes = await fetch(`${API}/meet/status-by-pass/${encodeURIComponent(visitor.pass_id)}`);
+        const meetData = await meetRes.json();
+        if (meetData.success && meetData.request) {
+          const s = meetData.request.status;
+          dMeetStatusEl.innerHTML = s === 'approved' ? '✅ Approved' : s === 'denied' ? '❌ Denied' : '⏳ Pending';
+        } else {
+          dMeetStatusEl.textContent = '— No request';
+        }
+      } catch (err) {
+        dMeetStatusEl.textContent = '— No request';
+      }
+    })();    document.getElementById('dCheckIn').textContent = fmtTime(visitor.check_in);
     document.getElementById('dCheckOut').textContent = visitor.check_out ? fmtTime(visitor.check_out) : '—';
     document.getElementById('dPreserve').textContent = currentPreserve ? '✅ Saved permanently' : '⏳ 7-day auto-delete';
 

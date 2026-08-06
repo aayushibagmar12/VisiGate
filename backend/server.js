@@ -73,10 +73,48 @@ db.exec(`
     reason      TEXT,
     created_at  TEXT DEFAULT (datetime('now','localtime'))
   );
+
+  CREATE TABLE IF NOT EXISTS otps (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    mobile      TEXT NOT NULL,
+    otp_code    TEXT NOT NULL,
+    verified    INTEGER DEFAULT 0,
+    expires_at  TEXT NOT NULL,
+    created_at  TEXT DEFAULT (datetime('now','localtime'))
+  );
+
+  CREATE TABLE IF NOT EXISTS meeting_requests (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    pass_id             TEXT NOT NULL,
+    visitor_name        TEXT NOT NULL,
+    reason              TEXT,
+    enrollment_number   TEXT NOT NULL,
+    token               TEXT UNIQUE NOT NULL,
+    status              TEXT DEFAULT 'pending',
+    created_at          TEXT DEFAULT (datetime('now','localtime'))
+  );
 `);
 // Add preserve_location column if it doesn't exist yet
 try {
   db.exec(`ALTER TABLE visitors ADD COLUMN preserve_location INTEGER DEFAULT 0`);
+} catch (e) {
+  // Column already exists, ignore
+}
+
+try {
+  db.exec(`ALTER TABLE visitors ADD COLUMN accompanying_count INTEGER DEFAULT 0`);
+} catch (e) {
+  // Column already exists, ignore
+}
+
+try {
+  db.exec(`ALTER TABLE visitors ADD COLUMN vehicle_number TEXT`);
+} catch (e) {
+  // Column already exists, ignore
+}
+
+try {
+  db.exec(`ALTER TABLE visitors ADD COLUMN id_photo_path TEXT`);
 } catch (e) {
   // Column already exists, ignore
 }
@@ -116,6 +154,20 @@ function generatePassId() {
   return `VG-${ts}-${rand}`;
 }
 
+function generateOtp() {
+  return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
+}
+
+// Simulated SMS sender — replace this with a real SMS provider later
+// (e.g. Twilio, MSG91, Fast2SMS). For now it just prints to the server console.
+function sendSms(mobile, message) {
+  console.log(`📱 [SIMULATED SMS] To: ${mobile} | Message: ${message}`);
+}
+
+function generateApprovalToken() {
+  return Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+}
+
 function saveBase64Photo(base64String) {
   if (!base64String) return null;
   const matches = base64String.match(/^data:(.+);base64,(.+)$/);
@@ -125,6 +177,165 @@ function saveBase64Photo(base64String) {
   fs.writeFileSync(filepath, Buffer.from(data, 'base64'));
   return `/uploads/${filename}`;
 }
+
+// ─────────────────────────────────────────────
+//  AUTH ROUTES (Mobile OTP login)
+// ─────────────────────────────────────────────
+
+const OTP_EXPIRY_MINUTES = 5;
+const OTP_RESEND_COOLDOWN_SECONDS = 30;
+
+// POST /api/auth/send-otp
+app.post('/api/auth/send-otp', (req, res) => {
+  try {
+    const { mobile } = req.body;
+    if (!mobile || !/^[0-9]{10}$/.test(mobile))
+      return res.status(400).json({ success: false, message: 'A valid 10-digit mobile number is required.' });
+
+    const blocked = db.prepare('SELECT * FROM blacklist WHERE mobile = ?').get(mobile);
+    if (blocked)
+      return res.status(403).json({ success: false, message: 'This number is not allowed to register.' });
+
+    // Misuse protection: block if the last OTP for this number was requested too recently
+    const lastOtp = db.prepare(`
+      SELECT * FROM otps WHERE mobile = ? ORDER BY created_at DESC LIMIT 1
+    `).get(mobile);
+
+    if (lastOtp) {
+      const secondsSinceLast = (Date.now() - new Date(lastOtp.created_at).getTime()) / 1000;
+      if (secondsSinceLast < OTP_RESEND_COOLDOWN_SECONDS) {
+        const waitSeconds = Math.ceil(OTP_RESEND_COOLDOWN_SECONDS - secondsSinceLast);
+        return res.status(429).json({
+          success: false,
+          message: `Please wait ${waitSeconds}s before requesting another OTP.`,
+          wait_seconds: waitSeconds
+        });
+      }
+    }
+
+    const otp_code   = generateOtp();
+    const expires_at = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000).toISOString();
+
+    db.prepare(`INSERT INTO otps (mobile, otp_code, expires_at) VALUES (?, ?, ?)`)
+      .run(mobile, otp_code, expires_at);
+
+    sendSms(mobile, `Your VisiGate OTP is ${otp_code}. It expires in ${OTP_EXPIRY_MINUTES} minutes.`);
+
+    res.json({ success: true, message: 'OTP sent successfully.' });
+  } catch (err) {
+    console.error('Send OTP error:', err);
+    res.status(500).json({ success: false, message: 'Server error sending OTP.' });
+  }
+});
+
+// POST /api/auth/verify-otp
+app.post('/api/auth/verify-otp', (req, res) => {
+  try {
+    const { mobile, otp } = req.body;
+    if (!mobile || !otp)
+      return res.status(400).json({ success: false, message: 'Mobile and OTP are required.' });
+
+    const record = db.prepare(`
+      SELECT * FROM otps
+      WHERE mobile = ? AND otp_code = ? AND verified = 0
+      ORDER BY created_at DESC LIMIT 1
+    `).get(mobile, otp);
+
+    if (!record)
+      return res.status(400).json({ success: false, message: 'Invalid OTP.' });
+
+    if (new Date(record.expires_at) < new Date())
+      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
+
+    db.prepare('UPDATE otps SET verified = 1 WHERE id = ?').run(record.id);
+
+    res.json({ success: true, message: 'Mobile number verified successfully.' });
+  } catch (err) {
+    console.error('Verify OTP error:', err);
+    res.status(500).json({ success: false, message: 'Server error verifying OTP.' });
+  }
+});
+
+// ─────────────────────────────────────────────
+//  MEETING REQUEST ROUTES (Whom to meet & approval)
+// ─────────────────────────────────────────────
+
+// POST /api/meet/request
+app.post('/api/meet/request', (req, res) => {
+  try {
+    const { pass_id, visitor_name, reason, enrollment_number } = req.body;
+    if (!pass_id || !visitor_name || !enrollment_number)
+      return res.status(400).json({ success: false, message: 'pass_id, visitor_name, and enrollment_number are required.' });
+
+    const token = generateApprovalToken();
+
+    db.prepare(`
+      INSERT INTO meeting_requests (pass_id, visitor_name, reason, enrollment_number, token)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(pass_id, visitor_name, reason || null, enrollment_number, token);
+
+    const approvalLink = `http://localhost:${PORT}/approve.html?token=${token}`;
+    console.log(`🔔 [APPROVAL LINK] For enrollment ${enrollment_number}: ${approvalLink}`);
+
+    res.json({ success: true, message: 'Meeting request created.', token });
+  } catch (err) {
+    console.error('Meet request error:', err);
+    res.status(500).json({ success: false, message: 'Server error creating meeting request.' });
+  }
+});
+
+// GET /api/meet/status/:token
+app.get('/api/meet/status/:token', (req, res) => {
+  try {
+    const request = db.prepare('SELECT * FROM meeting_requests WHERE token = ?').get(req.params.token);
+    if (!request)
+      return res.status(404).json({ success: false, message: 'Request not found.' });
+
+    // Also fetch the visitor's fuller details (photo, mobile, vehicle, accompanying count)
+    const visitor = db.prepare('SELECT photo_path, mobile, accompanying_count, vehicle_number FROM visitors WHERE pass_id = ?').get(request.pass_id);
+
+    res.json({ success: true, request, visitor: visitor || null });
+  } catch (err) {
+    console.error('Meet status error:', err);
+    res.status(500).json({ success: false, message: 'Server error fetching request.' });
+  }
+});
+// POST /api/meet/respond
+app.post('/api/meet/respond', (req, res) => {
+  try {
+    const { token, decision } = req.body;
+    if (!token || !['approved', 'denied'].includes(decision))
+      return res.status(400).json({ success: false, message: 'token and a valid decision (approved/denied) are required.' });
+
+    const request = db.prepare('SELECT * FROM meeting_requests WHERE token = ?').get(token);
+    if (!request)
+      return res.status(404).json({ success: false, message: 'Request not found.' });
+
+    db.prepare('UPDATE meeting_requests SET status = ? WHERE token = ?').run(decision, token);
+
+    res.json({ success: true, message: `Request ${decision}.` });
+  } catch (err) {
+    console.error('Meet respond error:', err);
+    res.status(500).json({ success: false, message: 'Server error responding to request.' });
+  }
+});
+
+// GET /api/meet/status-by-pass/:pass_id
+app.get('/api/meet/status-by-pass/:pass_id', (req, res) => {
+  try {
+    const request = db.prepare(`
+      SELECT * FROM meeting_requests WHERE pass_id = ? ORDER BY created_at DESC LIMIT 1
+    `).get(req.params.pass_id);
+
+    if (!request)
+      return res.json({ success: true, request: null });
+
+    res.json({ success: true, request });
+  } catch (err) {
+    console.error('Meet status-by-pass error:', err);
+    res.status(500).json({ success: false, message: 'Server error fetching request.' });
+  }
+});
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  VISITOR ROUTES
@@ -314,8 +525,7 @@ app.get('/api/guard/scan/:pass_id', (req, res) => {
 // Creates visitor record in DB (if not exists) and confirms entry
 app.post('/api/guard/entry', (req, res) => {
   try {
-    const { pass_id, name, age, mobile, id_type, id_number, photo_path, note } = req.body;
-    if (!pass_id || !name || !mobile)
+      const { pass_id, name, age, mobile, id_type, id_number, photo_path, note, accompanying_count, vehicle_number, id_photo_path } = req.body;    if (!pass_id || !name || !mobile)
       return res.status(400).json({ success: false, message: 'pass_id, name, and mobile are required.' });
 
     // Blacklist check
@@ -332,10 +542,10 @@ app.post('/api/guard/entry', (req, res) => {
     if (!existing) {
       // Create the visitor record
       const check_in = new Date().toISOString();
-      db.prepare(`
-        INSERT INTO visitors (pass_id, name, age, mobile, id_type, id_number, photo_path, status, check_in)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'inside', ?)
-      `).run(pass_id, name, age || null, mobile, id_type || null, id_number || null, photo_path || null, check_in);
+       db.prepare(`
+          INSERT INTO visitors (pass_id, name, age, mobile, id_type, id_number, photo_path, status, check_in, accompanying_count, vehicle_number, id_photo_path)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'inside', ?, ?, ?, ?)
+        `).run(pass_id, name, age || null, mobile, id_type || null, id_number || null, photo_path || null, check_in, accompanying_count || 0, vehicle_number || null, id_photo_path || null);
     } else {
       // Update status to inside
       db.prepare(`UPDATE visitors SET status = 'inside' WHERE pass_id = ?`).run(pass_id);

@@ -71,8 +71,21 @@ async function onQrSuccess(decodedText) {
         id_number:  qrData.id_number || null,
         photo_path: qrData.photo_path || null,
         time:       qrData.time || null,
+        accompanying_count: qrData.accompanying_count || 0,
+        vehicle_number:     qrData.vehicle_number || null,
+        id_photo_path:      qrData.id_photo_path || null,
     };
 
+    // Fetch meeting approval status for this visitor
+    try {
+        const meetRes = await fetch(`${API}/meet/status-by-pass/${encodeURIComponent(scannedPassId)}`);
+        const meetData = await meetRes.json();
+        if (meetData.success && meetData.request) {
+            scannedVisitor.meet_status = meetData.request.status;
+        }
+    } catch {
+        // No meeting request found or network issue — leave undefined
+    }
     // For exit mode, also try to fetch check-in time from server
     if (scanMode === 'EXIT') {
         try {
@@ -116,8 +129,28 @@ function showResult(visitor) {
     document.getElementById('resultAge').textContent      = visitor.age || '—';
     document.getElementById('resultIdType').textContent   = visitor.id_type || '—';
     document.getElementById('resultIdNum').textContent    = visitor.id_number || '—';
-    document.getElementById('resultCheckIn').textContent  = visitor.check_in ? fmtTime(visitor.check_in) : fmtTime(visitor.time);
-    document.getElementById('resultStatus').innerHTML     = visitor.status ? statusBadge(visitor.status) : '<span class="badge badge-manual">○ Pending</span>';
+    document.getElementById('resultAccompanying').textContent = visitor.accompanying_count || '0';
+    document.getElementById('resultVehicle').textContent      = visitor.vehicle_number || '—';
+
+    const idPhotoEl = document.getElementById('resultIdPhoto');
+    if (visitor.id_photo_path) {
+        idPhotoEl.innerHTML = `<a href="http://localhost:3000${visitor.id_photo_path}" target="_blank">View Photo</a>`;
+    } else {
+        idPhotoEl.textContent = '—';
+    }
+
+    const meetStatusEl = document.getElementById('resultMeetStatus');
+    if (visitor.meet_status === 'approved') {
+        meetStatusEl.innerHTML = '✅ Approved';
+    } else if (visitor.meet_status === 'denied') {
+        meetStatusEl.innerHTML = '❌ Denied';
+    } else if (visitor.meet_status === 'pending') {
+        meetStatusEl.innerHTML = '⏳ Pending';
+    } else {
+        meetStatusEl.textContent = '— No request';
+    }
+
+    document.getElementById('resultCheckIn').textContent  = visitor.check_in ? fmtTime(visitor.check_in) : fmtTime(visitor.time);    document.getElementById('resultStatus').innerHTML     = visitor.status ? statusBadge(visitor.status) : '<span class="badge badge-manual">○ Pending</span>';
 
     // Title
     document.getElementById('resultTitle').textContent =

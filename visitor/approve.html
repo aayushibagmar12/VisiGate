@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approve Visitor</title>
+    <meta name="description" content="Approve or deny a visitor's request to meet you.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="location.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- SCREEN 1: loading -->
+    <div class="form-container" id="screen-loading">
+        <h1>Loading...</h1>
+        <p class="subtitle">Fetching request details.</p>
+    </div>
+
+<!-- SCREEN 2: pending decision -->
+    <div class="form-container hidden" id="screen-pending">
+        <h1>Visitor Request</h1>
+
+        <img id="visitor-photo-preview" src="" alt="Visitor photo" style="display:none; width:100%; border-radius:8px; margin-bottom:10px;">
+
+        <p class="subtitle" id="request-summary"></p>
+
+        <div id="visitor-extra-details" style="display:none; text-align:left; background:#f9fafb; border-radius:8px; padding:12px; margin-top:10px; font-size:14px;">
+            <div><strong>Mobile:</strong> <span id="visitor-mobile-display">—</span></div>
+            <div><strong>Vehicle:</strong> <span id="visitor-vehicle-display">—</span></div>
+            <div><strong>People with them:</strong> <span id="visitor-accompanying-display">—</span></div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:16px;">
+            <button class="submit-btn" id="btn-approve">✅ Approve</button>
+            <button class="submit-btn" id="btn-deny" style="background:#ef4444;">❌ Deny</button>
+        </div>
+        <p class="error-text" id="approve-error" style="display:none;"></p>
+    </div>
+    
+    <!-- SCREEN 3: already responded / done -->
+    <div class="form-container hidden" id="screen-done">
+        <h1 id="done-title">Response Recorded</h1>
+        <p class="subtitle" id="done-message"></p>
+    </div>
+
+    <!-- SCREEN 4: error (invalid/missing token) -->
+    <div class="form-container hidden" id="screen-error">
+        <h1>Link Invalid</h1>
+        <p class="subtitle">This approval link is invalid or has expired.</p>
+    </div>
+
+    <script src="approve.js"></script>
+</body>
+</html>

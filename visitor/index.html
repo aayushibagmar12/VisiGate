@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
+    <script src="login-guard.js"></script>
     <div class="form-container">
         <h1>Registration Form</h1>
         <p class="subtitle">Please provide your details below.</p>
@@ -30,22 +31,49 @@
             </div>
             
             <div class="input-group">
-                <label for="id-type">Identification Card</label>
-                <select id="id-type" name="id-type" required>
-                    <option value="" disabled selected>Select an ID type</option>
-                    <option value="adhar">Aadhar Card</option>
-                    <option value="driving">Driving License</option>
-                    <option value="pan">PAN Card</option>
-                </select>
+                <label for="accompanying">Number of People Accompanying</label>
+                <input type="number" id="accompanying" name="accompanying" placeholder="0" min="0" value="0" required>
             </div>
-            
-            <div class="input-group" id="dynamic-id-container" style="display: none;">
-                <label id="dynamic-id-label" for="id-number">ID Number</label>
-                <input type="text" id="id-number" name="id-number" placeholder="Enter ID number" required>
+
+            <div class="input-group">
+                <label>Bringing a Vehicle Inside Campus?</label>
+                <div style="display:flex; gap:16px; margin-top:6px;">
+                    <label style="display:flex; align-items:center; gap:6px; font-weight:normal;">
+                        <input type="radio" name="bringing-vehicle" value="yes" id="vehicle-yes"> Yes
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; font-weight:normal;">
+                        <input type="radio" name="bringing-vehicle" value="no" id="vehicle-no" checked> No
+                    </label>
+                </div>
             </div>
-            
-            <button type="submit" class="submit-btn">Submit</button>
-        </form>
+
+            <div class="input-group" id="vehicle-number-container" style="display:none;">
+                <label for="vehicle-number">Vehicle Number</label>
+                <input type="text" id="vehicle-number" name="vehicle-number" placeholder="e.g., DL01AB1234">
+            </div>
+
+            <div class="input-group">
+                <label>ID Card Photo</label>
+                <div style="display:flex; gap:10px; margin-top:6px;">
+                    <button type="button" class="submit-btn" id="btn-upload-id" style="background:#f3f4f6; color:#374151;">Upload from Gallery</button>
+                    <button type="button" class="submit-btn" id="btn-capture-id" style="background:#f3f4f6; color:#374151;">Take Photo</button>
+                </div>
+                <input type="file" id="id-photo-file" accept="image/*" style="display:none;">
+
+                <div id="id-camera-wrap" style="display:none; margin-top:10px;">
+                    <video id="id-video" autoplay playsinline style="width:100%; border-radius:8px;"></video>
+                    <canvas id="id-canvas" style="display:none;"></canvas>
+                    <button type="button" class="submit-btn" id="btn-id-snap" style="margin-top:8px;">Snap Photo</button>
+                </div>
+
+                <div id="id-preview-wrap" style="display:none; margin-top:10px;">
+                    <img id="id-photo-preview" src="" alt="ID card preview" style="width:100%; border-radius:8px;">
+                    <button type="button" class="submit-btn" id="btn-id-retake" style="background:#f3f4f6; color:#374151; margin-top:8px;">Retake / Choose Again</button>
+                </div>
+                <p class="error-text" id="id-photo-error" style="display:none;"></p>
+            </div>
+
+            <button type="submit" class="submit-btn">Submit</button>        </form>
     </div>
 
     <script src="script.js"></script>

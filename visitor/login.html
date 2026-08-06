@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Login</title>
+    <meta name="description" content="Verify your mobile number to continue as a visitor.">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="form-container">
+        <h1>Visitor Login</h1>
+        <p class="subtitle" id="page-subtitle">Enter your mobile number to receive an OTP.</p>
+
+        <!-- STEP 1: Mobile number -->
+        <form id="mobile-form">
+            <div class="input-group">
+                <label for="mobile">Mobile Number</label>
+                <input type="tel" id="mobile" name="mobile" placeholder="9876543210" pattern="[0-9]{10}" title="Please enter a 10-digit mobile number" required>
+            </div>
+            <p class="error-text" id="mobile-error" style="display:none;"></p>
+            <button type="submit" class="submit-btn" id="send-otp-btn">Send OTP</button>
+        </form>
+
+        <!-- STEP 2: OTP verification (hidden until OTP is sent) -->
+        <form id="otp-form" style="display:none;">
+            <div class="input-group">
+                <label for="otp">Enter OTP</label>
+                <input type="text" id="otp" name="otp" placeholder="6-digit code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" title="Please enter the 6-digit OTP" required>
+            </div>
+            <p class="error-text" id="otp-error" style="display:none;"></p>
+            <button type="submit" class="submit-btn" id="verify-otp-btn">Verify OTP</button>
+            <button type="button" class="resend-btn" id="resend-btn" disabled>Resend OTP in <span id="resend-timer">30</span>s</button>
+        </form>
+    </div>
+
+    <script src="login.js"></script>
+</body>
+</html>

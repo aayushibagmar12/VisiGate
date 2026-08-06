@@ -45,8 +45,10 @@ const mobile    = sessionStorage.getItem('visitor_mobile');
 const id_type   = sessionStorage.getItem('visitor_id_type');
 const id_number = sessionStorage.getItem('visitor_id_number');
 const photo     = sessionStorage.getItem('visitor_photo');
+const accompanying_count = sessionStorage.getItem('visitor_accompanying_count');
+const vehicle_number     = sessionStorage.getItem('visitor_bringing_vehicle') === 'yes' ? sessionStorage.getItem('visitor_vehicle_number') : null;
+const id_photo            = sessionStorage.getItem('visitor_id_photo');
 const checkIn   = new Date();
-
 // ── Guard: if session is empty (e.g. page refreshed after exit), go back home ──
 if (!passId || !name || !mobile) {
     window.location.replace('index.html');
@@ -72,9 +74,10 @@ dbg('dbg-session', passId !== 'VG-DEMO01'
 // ═══════════════════════════════════════════════════════════════════════════════
 
 let photoPath = null;
+let idPhotoPath = null;
 
 async function uploadPhotoAndGenerateQR() {
-    // Upload photo to server (QR can't hold base64 images)
+    // Upload visitor's own photo to server (QR can't hold base64 images)
     if (photo) {
         dbg('dbg-photo', '⏳ Uploading photo (' + photo.length + ' chars)…');
         try {
@@ -98,18 +101,37 @@ async function uploadPhotoAndGenerateQR() {
         dbg('dbg-photo', '⚠️ No photo in session — skipping upload');
     }
 
-    // Generate QR with ALL visitor data (no photo blob — just the path reference)
-    const qrData = {
-        passId,
-        name,
-        age: age || null,
-        mobile,
-        id_type: id_type || null,
-        id_number: id_number || null,
-        photo_path: photoPath,
-        time: checkIn.toISOString(),
-    };
+    // Upload ID card photo to server
+    if (id_photo) {
+        try {
+            const res = await fetch(`${BACKEND}/api/visitor/upload-photo`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ photo: id_photo }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                idPhotoPath = data.photo_path;
+            }
+        } catch (err) {
+            console.error('ID photo upload failed:', err);
+        }
+    }    
 
+    // Generate QR with ALL visitor data (no photo blob — just the path reference)
+        const qrData = {
+            passId,
+            name,
+            age: age || null,
+            mobile,
+            id_type: id_type || null,
+            id_number: id_number || null,
+            photo_path: photoPath,
+            accompanying_count: accompanying_count || 0,
+            vehicle_number: vehicle_number || null,
+            id_photo_path: idPhotoPath,
+            time: checkIn.toISOString(),
+        };
     dbg('dbg-qr', '⏳ Generating QR (' + JSON.stringify(qrData).length + ' chars, level L)…');
     try {
         document.getElementById('qr-code').innerHTML = '';
@@ -186,9 +208,11 @@ async function autoConfirmEntry(qrData) {
                 id_type:    qrData.id_type,
                 id_number:  qrData.id_number,
                 photo_path: qrData.photo_path,
+                accompanying_count: qrData.accompanying_count,
+                vehicle_number:     qrData.vehicle_number,
+                id_photo_path:      qrData.id_photo_path,
                 note:       'Auto-entry (trial mode)',
-            }),
-        });
+            }),        });
         const data = await res.json();
 
         if (res.status === 403) {
