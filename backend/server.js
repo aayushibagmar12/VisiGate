@@ -618,11 +618,12 @@ app.get('/api/guard/logs/today', (req, res) => {
     const logs = db.prepare(`
       SELECT
         gl.id, gl.pass_id, gl.action, gl.note, gl.created_at,
-        v.name AS visitor_name, v.mobile AS visitor_mobile
+        v.name AS visitor_name, v.mobile AS visitor_mobile,
+        v.photo_path AS visitor_photo_path
       FROM guard_logs gl
       LEFT JOIN visitors v ON v.pass_id = gl.pass_id
       WHERE date(gl.created_at) = date('now', 'localtime')
-      ORDER BY gl.created_at DESC
+      ORDER BY gl.created_at ASC
     `).all();
     res.json({ success: true, logs });
   } catch (err) {

@@ -419,7 +419,6 @@ async function confirmManualExit() {
 
 async function loadTodayLog() {
     try {
-        // Fetch today's guard log entries
         const res  = await fetch(`${API}/guard/logs/today`);
         const data = await res.json();
         const logs = data.logs || [];
@@ -433,10 +432,29 @@ async function loadTodayLog() {
         }
         document.getElementById('logEmpty').style.display = 'none';
 
-        // Fetch current status for all unique pass_ids in this log batch
-        const passIds = [...new Set(logs.map(l => l.pass_id).filter(Boolean))];
+        // ── Group logs by pass_id — one row per visitor ──────────────────
+        // Logs come in ASC order, so entry is processed before exit per visitor
+        const visitorMap = new Map();
+        logs.forEach(log => {
+            if (!visitorMap.has(log.pass_id)) {
+                visitorMap.set(log.pass_id, {
+                    pass_id:    log.pass_id,
+                    name:       log.visitor_name       || '—',
+                    mobile:     log.visitor_mobile     || '',
+                    photo_path: log.visitor_photo_path || null,
+                    entryLog:   null,
+                    exitLog:    null,
+                });
+            }
+            const v = visitorMap.get(log.pass_id);
+            // Keep earliest entry, latest exit
+            if (log.action === 'entry' && !v.entryLog) v.entryLog = log;
+            if (log.action === 'exit')                  v.exitLog  = log;
+        });
+
+        // ── Fetch current campus status for all unique visitors ──────────
         const statusMap = {};
-        await Promise.all(passIds.map(async pid => {
+        await Promise.all([...visitorMap.keys()].map(async pid => {
             try {
                 const r = await fetch(`${API}/visitor/status/${encodeURIComponent(pid)}`);
                 const d = await r.json();
@@ -444,25 +462,51 @@ async function loadTodayLog() {
             } catch { /* silent */ }
         }));
 
-        logs.forEach(log => {
-            const tr = document.createElement('tr');
+        // ── Render — newest visitors first (sort by entry time DESC) ──────
+        const sorted = [...visitorMap.values()].sort((a, b) => {
+            const at = a.entryLog ? new Date(a.entryLog.created_at) : 0;
+            const bt = b.entryLog ? new Date(b.entryLog.created_at) : 0;
+            return bt - at;
+        });
 
-            const currentStatus = statusMap[log.pass_id];
-            const campusStatusBadge = (currentStatus === 'inside' || currentStatus === 'checked_in')
+        sorted.forEach(v => {
+            const tr = document.createElement('tr');
+            const currentStatus = statusMap[v.pass_id];
+            const isInside = (currentStatus === 'inside' || currentStatus === 'checked_in');
+
+            const campusStatusBadge = isInside
                 ? '<span class="badge badge-entry">● Inside</span>'
                 : (currentStatus === 'checked_out')
                     ? '<span class="badge badge-exit">✓ Exited</span>'
                     : '<span class="badge badge-manual">— Unknown</span>';
 
+            // Photo thumbnail
+            const photoHtml = v.photo_path
+                ? `<img src="${v.photo_path}" style="width:34px;height:34px;border-radius:6px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">`
+                : `<div style="width:34px;height:34px;border-radius:6px;background:var(--entry-bg,#e8f5e9);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">👤</div>`;
+
+            // Exit time: show "—" if visitor is still inside
+            const exitTimeHtml = isInside
+                ? '<span style="color:var(--muted)">—</span>'
+                : (v.exitLog ? fmtTime(v.exitLog.created_at) : '<span style="color:var(--muted)">—</span>');
+
+            // Note: prefer exit note (more meaningful), fall back to entry note
+            const noteText = v.exitLog?.note || v.entryLog?.note || '—';
+
             tr.innerHTML = `
                 <td>
-                    <strong>${esc(log.visitor_name || '—')}</strong><br/>
-                    <span style="font-size:.72rem;color:var(--muted)">${esc(log.visitor_mobile || '')}</span>
+                    <div style="display:flex;align-items:center;gap:9px;">
+                        ${photoHtml}
+                        <div>
+                            <strong>${esc(v.name)}</strong><br/>
+                            <span style="font-size:.72rem;color:var(--muted)">${esc(v.mobile)}</span>
+                        </div>
+                    </div>
                 </td>
-
-                <td>${fmtTime(log.created_at)}</td>
+                <td>${v.entryLog ? fmtTime(v.entryLog.created_at) : '<span style="color:var(--muted)">—</span>'}</td>
+                <td>${exitTimeHtml}</td>
                 <td>${campusStatusBadge}</td>
-                <td style="font-size:.78rem;color:var(--muted)">${esc(log.note || '—')}</td>`;
+                <td style="font-size:.78rem;color:var(--muted)">${esc(noteText)}</td>`;
             tbody.appendChild(tr);
         });
     } catch {
