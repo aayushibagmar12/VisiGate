@@ -1,0 +1,11 @@
+{
+  "name": "visigate",
+  "version": "1.0.0",
+  "description": "Visitor management system for IIIT Naya Raipur",
+  "scripts": {
+    "start": "node backend/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

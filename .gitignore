@@ -3,4 +3,5 @@ backend/uploads/
 backend/visigate.db
 backend/visigate.db-shm
 backend/visigate.db-wal
+node_modules/
 .DS_Store

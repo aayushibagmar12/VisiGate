@@ -1,4 +1,4 @@
-const API = 'http://localhost:3000/api';
+const API = '/api'; // relative — works on any device, any network
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let currentVisitorId     = null;
@@ -379,7 +379,7 @@ async function openDetail(id) {
     const imgEl = document.getElementById('visitorPhotoLg');
     const phEl  = document.getElementById('visitorPhotoPlaceholder');
     if (visitor.photo_path) {
-      imgEl.src = `http://localhost:3000${visitor.photo_path}`;
+      imgEl.src = visitor.photo_path; // root-relative path like /uploads/x.jpg
       imgEl.style.display = 'block'; phEl.style.display = 'none';
     } else {
       imgEl.style.display = 'none'; phEl.style.display = 'flex';
@@ -743,7 +743,7 @@ function statusBadge(status) {
 }
 
 function photoCell(path) {
-  if (path) return `<img src="http://localhost:3000${path}" class="visitor-photo" alt="photo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="photo-placeholder" style="display:none">👤</div>`;
+  if (path) return `<img src="${path}" class="visitor-photo" alt="photo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="photo-placeholder" style="display:none">👤</div>`;
   return `<div class="photo-placeholder">👤</div>`;
 }
 

@@ -1,4 +1,4 @@
-const BACKEND = 'http://localhost:3000';
+const BACKEND = ''; // relative to current host — works on any device, any network
 
 const screens = {
     waiting: document.getElementById('screen-waiting'),

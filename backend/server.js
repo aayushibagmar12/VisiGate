@@ -7,7 +7,13 @@ const bcrypt = require('bcrypt');
 const fs = require('fs');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+
+// Use DATA_DIR env var on Railway (persistent volume), fallback to local path
+const DATA_DIR    = process.env.DATA_DIR || path.join(__dirname);
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+if (!require('fs').existsSync(UPLOADS_DIR)) require('fs').mkdirSync(UPLOADS_DIR, { recursive: true });
+
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
@@ -22,10 +28,10 @@ app.use(express.static(path.join(__dirname, '..')));
 app.use('/guard', express.static(path.join(__dirname, '../guard')));
 
 // Serve uploaded photos
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(DATA_DIR, 'uploads')));
 
 // ─── Database ─────────────────────────────────────────────────────────────────
-const db = new Database(path.join(__dirname, 'visigate.db'));
+const db = new Database(path.join(DATA_DIR, 'visigate.db'));
 db.pragma('journal_mode = WAL');
 
 db.exec(`
@@ -139,7 +145,7 @@ if (!defaultAdminExists) {
 
 // ─── Multer ───────────────────────────────────────────────────────────────────
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, path.join(__dirname, 'uploads')),
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename:    (req, file, cb) => {
     const ext = path.extname(file.originalname) || '.jpg';
     cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
@@ -173,7 +179,7 @@ function saveBase64Photo(base64String) {
   const matches = base64String.match(/^data:(.+);base64,(.+)$/);
   const data    = matches ? matches[2] : base64String;
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
-  const filepath = path.join(__dirname, 'uploads', filename);
+  const filepath = path.join(UPLOADS_DIR, filename);
   fs.writeFileSync(filepath, Buffer.from(data, 'base64'));
   return `/uploads/${filename}`;
 }
@@ -772,7 +778,7 @@ app.delete('/api/admin/visitor/:id', (req, res) => {
 
     // Delete photo file if exists
     if (visitor.photo_path) {
-      const fullPath = path.join(__dirname, visitor.photo_path.replace('/uploads/', 'uploads/'));
+      const fullPath = path.join(DATA_DIR, visitor.photo_path.replace('/uploads/', 'uploads/'));
       if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
     }
 

@@ -1,4 +1,4 @@
-const API = 'http://localhost:3000/api';
+const API = '/api'; // relative — works on any device, any network
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let scanMode         = null;   // 'ENTRY' or 'EXIT'
@@ -114,7 +114,7 @@ function showResult(visitor) {
     const imgEl = document.getElementById('resultPhoto');
     const phEl  = document.getElementById('resultPhotoPlaceholder');
     if (visitor.photo_path) {
-        imgEl.src = `http://localhost:3000${visitor.photo_path}`;
+        imgEl.src = visitor.photo_path; // already a root-relative path like /uploads/x.jpg
         imgEl.style.display = 'block';
         phEl.style.display  = 'none';
     } else {
