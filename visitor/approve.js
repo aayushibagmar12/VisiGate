@@ -54,7 +54,7 @@ requestSummary.textContent = `${req.visitor_name} wants to meet you. Reason: ${r
             const visitor = data.visitor;
             if (visitor) {
                 if (visitor.photo_path) {
-                    document.getElementById('visitor-photo-preview').src = `http://localhost:3000${visitor.photo_path}`;
+                    document.getElementById('visitor-photo-preview').src = `${window.location.origin}${visitor.photo_path}`;
                     document.getElementById('visitor-photo-preview').style.display = 'block';
                 }
                 document.getElementById('visitor-mobile-display').textContent = visitor.mobile || '—';
