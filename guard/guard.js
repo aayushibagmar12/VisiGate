@@ -134,7 +134,7 @@ function showResult(visitor) {
 
     const idPhotoEl = document.getElementById('resultIdPhoto');
     if (visitor.id_photo_path) {
-        idPhotoEl.innerHTML = `<a href="http://localhost:3000${visitor.id_photo_path}" target="_blank">View Photo</a>`;
+        idPhotoEl.innerHTML = `<a href="${window.location.origin}${visitor.id_photo_path}" target="_blank">View Photo</a>`;
     } else {
         idPhotoEl.textContent = '—';
     }
