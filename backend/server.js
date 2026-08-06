@@ -280,7 +280,7 @@ app.post('/api/meet/request', (req, res) => {
       VALUES (?, ?, ?, ?, ?)
     `).run(pass_id, visitor_name, reason || null, enrollment_number, token);
 
-    const approvalLink = `http://localhost:${PORT}/approve.html?token=${token}`;
+    const approvalLink = `${process.env.BASE_URL || 'http://localhost:' + PORT}/approve.html?token=${token}`;
     console.log(`🔔 [APPROVAL LINK] For enrollment ${enrollment_number}: ${approvalLink}`);
 
     res.json({ success: true, message: 'Meeting request created.', token });
