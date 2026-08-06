@@ -348,7 +348,7 @@ async function openDetail(id) {
 
     const dIdPhotoEl = document.getElementById('dIdPhoto');
     if (visitor.id_photo_path) {
-      dIdPhotoEl.innerHTML = `<a href="http://localhost:3000${visitor.id_photo_path}" target="_blank">View Photo</a>`;
+      dIdPhotoEl.innerHTML = `<a href="${window.location.origin}${visitor.id_photo_path}" target="_blank">View Photo</a>`;
     } else {
       dIdPhotoEl.textContent = '—';
     }
