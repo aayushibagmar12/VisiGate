@@ -33,7 +33,7 @@ function onGranted(pos) {
     coordsEl.textContent = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}  ·  ±${Math.round(accuracy)} m accuracy`;
     sendPing(latitude, longitude, accuracy);
     startWatch();
-    setTimeout(() => { window.location.href = 'photo.html'; }, 1500);
+    setTimeout(() => { window.location.href = 'pass.html'; }, 1500);
 }
 
 function onDenied() { showScreen('denied'); }

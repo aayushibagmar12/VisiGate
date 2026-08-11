@@ -28,95 +28,77 @@ document.addEventListener('DOMContentLoaded', () => {
     vehicleYes.addEventListener('change', updateVehicleField);
     vehicleNo.addEventListener('change', updateVehicleField);
 
-    // ── ID Card Photo: upload / capture ──
-    const btnUploadId = document.getElementById('btn-upload-id');
-    const btnCaptureId = document.getElementById('btn-capture-id');
-    const idPhotoFile = document.getElementById('id-photo-file');
-    const idCameraWrap = document.getElementById('id-camera-wrap');
-    const idVideo = document.getElementById('id-video');
-    const idCanvas = document.getElementById('id-canvas');
-    const btnIdSnap = document.getElementById('btn-id-snap');
-    const idPreviewWrap = document.getElementById('id-preview-wrap');
-    const idPhotoPreview = document.getElementById('id-photo-preview');
-    const btnIdRetake = document.getElementById('btn-id-retake');
-    const idPhotoError = document.getElementById('id-photo-error');
+    // ── Face Photo: Modal Capture ──
+    const btnOpenCamera = document.getElementById('btn-open-camera');
+    const cameraModal = document.getElementById('cameraModal');
+    const modalVideo = document.getElementById('modal-video');
+    const modalCanvas = document.getElementById('modal-canvas');
+    const btnModalSnap = document.getElementById('btn-modal-snap');
+    const btnModalCancel = document.getElementById('btn-modal-cancel');
+    const facePreviewWrap = document.getElementById('face-preview-wrap');
+    const facePhotoPreview = document.getElementById('face-photo-preview');
+    const btnRetakeFace = document.getElementById('btn-retake-face');
+    const facePhotoError = document.getElementById('face-photo-error');
 
-    let idPhotoDataUrl = null;
-    let idCameraStream = null;
+    let facePhotoDataUrl = null;
+    let cameraStream = null;
 
-    function showIdPreview(dataUrl) {
-        idPhotoDataUrl = dataUrl;
-        idPhotoPreview.src = dataUrl;
-        idPreviewWrap.style.display = 'block';
-        idCameraWrap.style.display = 'none';
-        btnUploadId.style.display = 'none';
-        btnCaptureId.style.display = 'none';
-        idPhotoError.style.display = 'none';
-    }
-
-    function resetIdPhoto() {
-        idPhotoDataUrl = null;
-        idPhotoPreview.src = '';
-        idPreviewWrap.style.display = 'none';
-        idCameraWrap.style.display = 'none';
-        btnUploadId.style.display = 'inline-block';
-        btnCaptureId.style.display = 'inline-block';
-        idPhotoFile.value = '';
-        if (idCameraStream) {
-            idCameraStream.getTracks().forEach(t => t.stop());
-            idCameraStream = null;
-        }
-    }
-
-    // Upload from gallery
-    btnUploadId.addEventListener('click', () => idPhotoFile.click());
-    idPhotoFile.addEventListener('change', () => {
-        const file = idPhotoFile.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => showIdPreview(e.target.result);
-        reader.readAsDataURL(file);
-    });
-
-    // Take photo (inline camera)
-    btnCaptureId.addEventListener('click', async () => {
+    btnOpenCamera.addEventListener('click', async () => {
         try {
-            idCameraStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' },
+            cameraStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user' },
                 audio: false
             });
-            idVideo.srcObject = idCameraStream;
-            idCameraWrap.style.display = 'block';
-            btnUploadId.style.display = 'none';
-            btnCaptureId.style.display = 'none';
+            modalVideo.srcObject = cameraStream;
+            cameraModal.style.display = 'flex';
+            facePhotoError.style.display = 'none';
         } catch (err) {
-            idPhotoError.textContent = 'Camera access denied or unavailable. Please use Upload instead.';
-            idPhotoError.style.display = 'block';
+            facePhotoError.textContent = 'Camera access denied or unavailable.';
+            facePhotoError.style.display = 'block';
         }
     });
 
-    btnIdSnap.addEventListener('click', () => {
-        idCanvas.width = idVideo.videoWidth;
-        idCanvas.height = idVideo.videoHeight;
-        idCanvas.getContext('2d').drawImage(idVideo, 0, 0);
-        const dataUrl = idCanvas.toDataURL('image/jpeg', 0.9);
-        if (idCameraStream) {
-            idCameraStream.getTracks().forEach(t => t.stop());
-            idCameraStream = null;
+    function stopCamera() {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(t => t.stop());
+            cameraStream = null;
         }
-        showIdPreview(dataUrl);
+    }
+
+    btnModalCancel.addEventListener('click', () => {
+        stopCamera();
+        cameraModal.style.display = 'none';
     });
 
-    btnIdRetake.addEventListener('click', resetIdPhoto);
+    btnModalSnap.addEventListener('click', () => {
+        modalCanvas.width = modalVideo.videoWidth;
+        modalCanvas.height = modalVideo.videoHeight;
+        modalCanvas.getContext('2d').drawImage(modalVideo, 0, 0);
+        facePhotoDataUrl = modalCanvas.toDataURL('image/jpeg', 0.8);
+        stopCamera();
+        cameraModal.style.display = 'none';
+        
+        facePhotoPreview.src = facePhotoDataUrl;
+        facePreviewWrap.style.display = 'block';
+        btnOpenCamera.style.display = 'none';
+    });
+
+    btnRetakeFace.addEventListener('click', () => {
+        facePhotoDataUrl = null;
+        facePhotoPreview.src = '';
+        facePreviewWrap.style.display = 'none';
+        btnOpenCamera.style.display = 'inline-block';
+        btnOpenCamera.click();
+    });
 
     // ── Form submit ──
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Custom validation: ID photo is required
-        if (!idPhotoDataUrl) {
-            idPhotoError.textContent = 'Please upload or take a photo of your ID card.';
-            idPhotoError.style.display = 'block';
+        // Custom validation: Face photo is required
+        if (!facePhotoDataUrl) {
+            facePhotoError.textContent = 'Please take a photo of your face.';
+            facePhotoError.style.display = 'block';
             return;
         }
 
@@ -137,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.setItem('visitor_accompanying_count', document.getElementById('accompanying').value);
             sessionStorage.setItem('visitor_bringing_vehicle', vehicleYes.checked ? 'yes' : 'no');
             sessionStorage.setItem('visitor_vehicle_number', vehicleYes.checked ? vehicleNumberInput.value : '');
-            sessionStorage.setItem('visitor_id_photo', idPhotoDataUrl);
+            sessionStorage.setItem('visitor_photo', facePhotoDataUrl);
 
             setTimeout(() => {
                 window.location.href = 'meet.html';

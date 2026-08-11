@@ -47,7 +47,6 @@ const id_number = sessionStorage.getItem('visitor_id_number');
 const photo     = sessionStorage.getItem('visitor_photo');
 const accompanying_count = sessionStorage.getItem('visitor_accompanying_count');
 const vehicle_number     = sessionStorage.getItem('visitor_bringing_vehicle') === 'yes' ? sessionStorage.getItem('visitor_vehicle_number') : null;
-const id_photo            = sessionStorage.getItem('visitor_id_photo');
 const checkIn   = new Date();
 // ── Guard: if session is empty (e.g. page refreshed after exit), go back home ──
 if (!passId || !name || !mobile) {
@@ -74,7 +73,6 @@ dbg('dbg-session', passId !== 'VG-DEMO01'
 // ═══════════════════════════════════════════════════════════════════════════════
 
 let photoPath = null;
-let idPhotoPath = null;
 
 async function uploadPhotoAndGenerateQR() {
     // Upload visitor's own photo to server (QR can't hold base64 images)
@@ -101,23 +99,6 @@ async function uploadPhotoAndGenerateQR() {
         dbg('dbg-photo', '⚠️ No photo in session — skipping upload');
     }
 
-    // Upload ID card photo to server
-    if (id_photo) {
-        try {
-            const res = await fetch(`${BACKEND}/api/visitor/upload-photo`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ photo: id_photo }),
-            });
-            const data = await res.json();
-            if (data.success) {
-                idPhotoPath = data.photo_path;
-            }
-        } catch (err) {
-            console.error('ID photo upload failed:', err);
-        }
-    }    
-
     // Generate QR with ALL visitor data (no photo blob — just the path reference)
         const qrData = {
             passId,
@@ -129,7 +110,6 @@ async function uploadPhotoAndGenerateQR() {
             photo_path: photoPath,
             accompanying_count: accompanying_count || 0,
             vehicle_number: vehicle_number || null,
-            id_photo_path: idPhotoPath,
             time: checkIn.toISOString(),
         };
     dbg('dbg-qr', '⏳ Generating QR (' + JSON.stringify(qrData).length + ' chars, level L)…');

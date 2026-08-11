@@ -53,27 +53,32 @@
             </div>
 
             <div class="input-group">
-                <label>ID Card Photo</label>
+                <label>Face Photo</label>
                 <div style="display:flex; gap:10px; margin-top:6px;">
-                    <button type="button" class="submit-btn" id="btn-upload-id" style="background:#f3f4f6; color:#374151;">Upload from Gallery</button>
-                    <button type="button" class="submit-btn" id="btn-capture-id" style="background:#f3f4f6; color:#374151;">Take Photo</button>
+                    <button type="button" class="submit-btn" id="btn-open-camera" style="background:#f3f4f6; color:#374151;">Take Photo</button>
                 </div>
-                <input type="file" id="id-photo-file" accept="image/*" style="display:none;">
-
-                <div id="id-camera-wrap" style="display:none; margin-top:10px;">
-                    <video id="id-video" autoplay playsinline style="width:100%; border-radius:8px;"></video>
-                    <canvas id="id-canvas" style="display:none;"></canvas>
-                    <button type="button" class="submit-btn" id="btn-id-snap" style="margin-top:8px;">Snap Photo</button>
+                <div id="face-preview-wrap" style="display:none; margin-top:10px;">
+                    <img id="face-photo-preview" src="" alt="Face preview" style="width:100%; border-radius:8px;">
+                    <button type="button" class="submit-btn" id="btn-retake-face" style="background:#f3f4f6; color:#374151; margin-top:8px;">Retake / Choose Again</button>
                 </div>
-
-                <div id="id-preview-wrap" style="display:none; margin-top:10px;">
-                    <img id="id-photo-preview" src="" alt="ID card preview" style="width:100%; border-radius:8px;">
-                    <button type="button" class="submit-btn" id="btn-id-retake" style="background:#f3f4f6; color:#374151; margin-top:8px;">Retake / Choose Again</button>
-                </div>
-                <p class="error-text" id="id-photo-error" style="display:none;"></p>
+                <p class="error-text" id="face-photo-error" style="display:none;"></p>
             </div>
 
             <button type="submit" class="submit-btn">Submit</button>        </form>
+    </div>
+
+    <!-- ═══ CAMERA MODAL ═══ -->
+    <div class="modal-overlay" id="cameraModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:999; flex-direction:column; align-items:center; justify-content:center;">
+        <div style="background:#fff; width:90%; max-width:400px; padding:20px; border-radius:12px; text-align:center;">
+            <h3 style="margin-bottom:10px;">Take Your Photo</h3>
+            <p style="font-size:0.85rem; color:#6b7280; margin-bottom:16px;">Make sure your face is clearly visible.</p>
+            <video id="modal-video" autoplay playsinline style="width:100%; border-radius:8px; background:#000; min-height:200px;"></video>
+            <canvas id="modal-canvas" style="display:none;"></canvas>
+            <div style="display:flex; gap:10px; margin-top:16px;">
+                <button type="button" class="submit-btn" id="btn-modal-cancel" style="background:#f3f4f6; color:#374151; flex:1;">Cancel</button>
+                <button type="button" class="submit-btn" id="btn-modal-snap" style="flex:1;">Capture</button>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>
