@@ -14,8 +14,7 @@ let searchDebounce   = null;
 
 function startScan(mode) {
     scanMode = mode;
-    document.getElementById('scannerTitle').textContent =
-        mode === 'ENTRY' ? 'Scanning Entry QR' : 'Scanning Exit QR';
+    document.getElementById('scannerTitle').textContent = 'Scanning Visitor QR';
     document.getElementById('scannerOverlay').classList.add('open');
 
     html5QrCode = new Html5Qrcode('qr-reader');
@@ -86,20 +85,32 @@ async function onQrSuccess(decodedText) {
     } catch {
         // No meeting request found or network issue — leave undefined
     }
-    // For exit mode, also try to fetch check-in time from server
-    if (scanMode === 'EXIT') {
-        try {
-            const res = await fetch(`${API}/guard/scan/${encodeURIComponent(scannedPassId)}`);
+    // Auto-detect entry or exit based on current DB status
+    let serverVisitor = null;
+    try {
+        const res = await fetch(`${API}/guard/scan/${encodeURIComponent(scannedPassId)}`);
+        if (res.ok) {
             const data = await res.json();
             if (data.success && data.visitor) {
-                // Merge server data (has check_in, status, etc.)
-                scannedVisitor.check_in = data.visitor.check_in;
-                scannedVisitor.status   = data.visitor.status;
-                scannedVisitor.photo_path = data.visitor.photo_path || scannedVisitor.photo_path;
+                serverVisitor = data.visitor;
             }
-        } catch {
-            // Use QR data as fallback
         }
+    } catch {
+        // network issue
+    }
+
+    if (serverVisitor) {
+        scannedVisitor.check_in = serverVisitor.check_in;
+        scannedVisitor.status   = serverVisitor.status;
+        scannedVisitor.photo_path = serverVisitor.photo_path || scannedVisitor.photo_path;
+
+        if (serverVisitor.status === 'checked_in' || serverVisitor.status === 'inside') {
+            scanMode = 'EXIT';
+        } else {
+            scanMode = 'ENTRY';
+        }
+    } else {
+        scanMode = 'ENTRY';
     }
 
     showResult(scannedVisitor);

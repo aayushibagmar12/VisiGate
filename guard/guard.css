@@ -167,13 +167,9 @@ body {
     margin-top: -4px;
 }
 
-.action-btn.entry { border-color: #bbf7d0; }
-.action-btn.entry .icon { background: var(--success-light); }
-.action-btn.entry:hover { border-color: var(--success); background: #f0fdf4; }
-
-.action-btn.exit { border-color: #fecaca; }
-.action-btn.exit .icon { background: var(--danger-light); }
-.action-btn.exit:hover { border-color: var(--danger); background: #fef2f2; }
+.action-btn.common { border-color: #bfdbfe; }
+.action-btn.common .icon { background: #dbeafe; font-size: 1.8rem; }
+.action-btn.common:hover { border-color: var(--primary); background: #eff6ff; }
 
 /* ── BUTTONS ─────────────────────────────────────────────────────────────────── */
 .btn {

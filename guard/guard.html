@@ -23,16 +23,11 @@
 <main class="guard-main">
 
   <!-- ── SCAN BUTTONS ── -->
-  <div class="action-grid" id="actionGrid">
-    <button class="action-btn entry" onclick="startScan('ENTRY')">
-      <div class="icon">🟢</div>
-      <div class="label">Scan Entry QR</div>
-      <div class="sublabel">Visitor arriving</div>
-    </button>
-    <button class="action-btn exit" onclick="startScan('EXIT')">
-      <div class="icon">🔴</div>
-      <div class="label">Scan Exit QR</div>
-      <div class="sublabel">Visitor leaving</div>
+  <div class="action-grid" id="actionGrid" style="grid-template-columns: 1fr;">
+    <button class="action-btn common" onclick="startScan('COMMON')">
+      <div class="icon">📷</div>
+      <div class="label">Scan Visitor QR</div>
+      <div class="sublabel">Auto-detect Entry or Exit</div>
     </button>
   </div>
 
