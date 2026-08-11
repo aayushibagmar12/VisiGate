@@ -499,7 +499,7 @@ async function loadTodayLog() {
             // Exit time: show "—" if visitor is still inside
             const exitTimeHtml = isInside
                 ? '<span style="color:var(--muted)">—</span>'
-                : (v.exitLog ? fmtTime(v.exitLog.created_at) : '<span style="color:var(--muted)">—</span>');
+                : (v.exitLog ? fmtTimeHtml(v.exitLog.created_at) : '<span style="color:var(--muted)">—</span>');
 
             // Note: prefer exit note (more meaningful), fall back to entry note
             const noteText = v.exitLog?.note || v.entryLog?.note || '—';
@@ -514,7 +514,7 @@ async function loadTodayLog() {
                         </div>
                     </div>
                 </td>
-                <td>${v.entryLog ? fmtTime(v.entryLog.created_at) : '<span style="color:var(--muted)">—</span>'}</td>
+                <td>${v.entryLog ? fmtTimeHtml(v.entryLog.created_at) : '<span style="color:var(--muted)">—</span>'}</td>
                 <td>${exitTimeHtml}</td>
                 <td>${campusStatusBadge}</td>
                 <td style="font-size:.78rem;color:var(--muted)">${esc(noteText)}</td>`;
@@ -542,6 +542,25 @@ function fmtTime(iso) {
         day: '2-digit', month: 'short', year: 'numeric',
         hour: '2-digit', minute: '2-digit'
     });
+}
+
+function fmtTimeHtml(iso) {
+    if (!iso) return '<span style="color:var(--muted)">—</span>';
+    const d = new Date(iso);
+    if (isNaN(d)) return esc(iso);
+    
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = String(d.getFullYear()).slice(-2);
+    
+    let hours = d.getHours();
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12;
+    hours = hours ? hours : 12; 
+    const hrStr = String(hours).padStart(2, '0');
+    
+    return `${day}/${month}/${year}<br/><span style="font-size: 0.85em; color: var(--muted);">${hrStr}:${mins} ${ampm}</span>`;
 }
 
 function timeDiff(start, end) {

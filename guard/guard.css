@@ -86,7 +86,7 @@ body {
 
 /* ── MAIN CONTAINER ──────────────────────────────────────────────────────────── */
 .guard-main {
-    padding: 20px;
+    padding: 12px;
     max-width: 480px;
     margin: 0 auto;
 }
@@ -98,11 +98,11 @@ body {
     border-radius: var(--radius);
     box-shadow: var(--shadow-sm);
     overflow: hidden;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
 .card-header {
-    padding: 14px 18px;
+    padding: 10px 14px;
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -117,14 +117,14 @@ body {
     gap: 6px;
 }
 
-.card-body { padding: 18px; }
+.card-body { padding: 12px; }
 
 /* ── ACTION BUTTONS ──────────────────────────────────────────────────────────── */
 .action-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
 .action-btn {
@@ -132,8 +132,8 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    padding: 24px 16px;
+    gap: 8px;
+    padding: 16px 12px;
     border-radius: var(--radius);
     border: 2px solid var(--border);
     background: var(--card);
@@ -533,17 +533,23 @@ body {
 }
 
 /* ── TODAY'S LOG TABLE ───────────────────────────────────────────────────────── */
-.log-table-wrap { overflow-x: auto; }
+.log-table-wrap {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 45vh;
+    -webkit-overflow-scrolling: touch;
+}
 
 .log-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.82rem;
+    white-space: nowrap;
 }
 
 .log-table th {
     text-align: left;
-    padding: 10px 14px;
+    padding: 10px 10px;
     color: var(--muted);
     font-size: 0.7rem;
     font-weight: 600;
@@ -551,10 +557,13 @@ body {
     text-transform: uppercase;
     border-bottom: 1px solid var(--border);
     background: #fafafa;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .log-table td {
-    padding: 10px 14px;
+    padding: 10px 10px;
     border-bottom: 1px solid #f3f4f6;
     vertical-align: middle;
 }
