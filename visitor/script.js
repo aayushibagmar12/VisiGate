@@ -73,7 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
     btnModalSnap.addEventListener('click', () => {
         modalCanvas.width = modalVideo.videoWidth;
         modalCanvas.height = modalVideo.videoHeight;
-        modalCanvas.getContext('2d').drawImage(modalVideo, 0, 0);
+        const ctx = modalCanvas.getContext('2d');
+        ctx.translate(modalCanvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(modalVideo, 0, 0);
         facePhotoDataUrl = modalCanvas.toDataURL('image/jpeg', 0.8);
         stopCamera();
         cameraModal.style.display = 'none';
